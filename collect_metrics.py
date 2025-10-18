@@ -18,40 +18,73 @@ GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
 IG_USER_ID = os.getenv("IG_USER_ID")
 
 # =======================
-# 🔹 FUNÇÕES DO YOUTUBE
+# 🔹 FUNÇÃO ATUALIZADA — COLETA AUTOMÁTICA DE TODOS OS VÍDEOS
 # =======================
 def get_youtube_metrics(youtube, metadata):
+    print("🎥 Coletando métricas do YouTube...")
+
+    # 🔸 1. Coleta dados gerais do canal
     channel_stats = youtube.channels().list(part="statistics", mine=True).execute()
     channel_data = channel_stats["items"][0]["statistics"]
 
+    # 🔸 2. Descobre o ID do canal
+    channel_id = channel_stats["items"][0]["id"]
+
+    # 🔸 3. Busca todos os vídeos do canal (com paginação)
+    all_video_ids = []
+    next_page_token = None
+
+    while True:
+        res = youtube.search().list(
+            part="id",
+            channelId=channel_id,
+            maxResults=50,
+            type="video",
+            order="date",
+            pageToken=next_page_token
+        ).execute()
+
+        for item in res.get("items", []):
+            vid = item["id"]["videoId"]
+            all_video_ids.append(vid)
+
+        next_page_token = res.get("nextPageToken")
+        if not next_page_token:
+            break
+
+    print(f"🔎 Encontrados {len(all_video_ids)} vídeos no canal.")
+
+    # 🔸 4. Busca métricas de cada vídeo em lotes de 50 (limite da API)
     video_metrics = []
-    for gancho_nome, info in metadata.items():
-        title = info.get("title", "")
-        video_id = info.get("youtube_id")
-        if not video_id:
-            continue
+    for i in range(0, len(all_video_ids), 50):
+        batch = all_video_ids[i:i + 50]
+        stats_res = youtube.videos().list(part="snippet,statistics", id=",".join(batch)).execute()
 
-        res = youtube.videos().list(part="statistics", id=video_id).execute()
-        if "items" not in res or len(res["items"]) == 0:
-            continue
+        for item in stats_res.get("items", []):
+            vid = item["id"]
+            snippet = item.get("snippet", {})
+            stats = item.get("statistics", {})
 
-        stats = res["items"][0]["statistics"]
-        video_metrics.append({
-            "gancho": gancho_nome,
-            "title": title,
-            "video_id": video_id,
-            "views": int(stats.get("viewCount", 0)),
-            "likes": int(stats.get("likeCount", 0)),
-            "comments": int(stats.get("commentCount", 0))
-        })
+            video_metrics.append({
+                "video_id": vid,
+                "title": snippet.get("title", ""),
+                "views": int(stats.get("viewCount", 0)),
+                "likes": int(stats.get("likeCount", 0)),
+                "comments": int(stats.get("commentCount", 0)),
+                "publishedAt": snippet.get("publishedAt", "")
+            })
+
+    summary = {
+        "viewCount": int(channel_data.get("viewCount", 0)),
+        "subscriberCount": int(channel_data.get("subscriberCount", 0)),
+        "videoCount": int(channel_data.get("videoCount", 0)),
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+    }
+
+    print(f"✅ Coletadas métricas de {len(video_metrics)} vídeos do YouTube.")
 
     return {
-        "summary": {
-            "viewCount": int(channel_data["viewCount"]),
-            "subscriberCount": int(channel_data["subscriberCount"]),
-            "videoCount": int(channel_data["videoCount"]),
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
-        },
+        "summary": summary,
         "videos": video_metrics
     }
 
