@@ -4,6 +4,8 @@ import random
 from statistics import mean
 import matplotlib.pyplot as plt
 import os
+import subprocess
+
 
 # =======================
 # 📁 Caminhos
@@ -171,6 +173,15 @@ def main():
     print(f"🕐 Melhor horário estimado: {proximo_horario}:00")
     print(f"📊 Resultados salvos em {RESULT_PATH}")
     print(f"📁 Estado salvo em {STATE_PATH}")
+
+    # 🔹 Commit automático (para manter o histórico de análises)
+    try:
+        subprocess.run(["git", "add", "data/analise_ganchos.json", "data/state.json"], check=True)
+        subprocess.run(["git", "commit", "-m", "📈 Atualiza análise e próxima recomendação"], check=False)
+        subprocess.run(["git", "push"], check=False)
+    except Exception as e:
+        print("⚠️ Erro ao fazer commit automático:", e)
+
 
 if __name__ == "__main__":
     main()

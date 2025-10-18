@@ -205,6 +205,8 @@ def main():
 
     print("✅ Métricas salvas em", metrics_path)
 
+    
+
 if __name__ == "__main__":
     main()
 
