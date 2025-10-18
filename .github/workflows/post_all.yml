@@ -49,11 +49,11 @@ jobs:
         run: python3 analyze_metrics.py
 
       # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
-      - name: Upload Video to YouTube
-        env:
-          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
-          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
-        run: python3 upload_youtube.py
+#      - name: Upload Video to YouTube
+#        env:
+#          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+#          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
+#        run: python3 upload_youtube.py
 
       # (opcional) Upload Instagram — pode ser reativado depois
       # - name: Upload to Instagram
