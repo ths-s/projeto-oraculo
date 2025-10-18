@@ -1,223 +1,162 @@
 import os
 import json
 import datetime
-import requests
-from googleapiclient.discovery import build
-import pickle
-import base64
-import subprocess
-
-# Caminhos
-os.makedirs("data", exist_ok=True)
-metrics_path = "data/metrics.json"
-metadata_path = "metadata.json"
-
-# Variáveis de ambiente (GitHub Secrets)
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
-IG_USER_ID = os.getenv("IG_USER_ID")
+import random
+from statistics import mean
 
 # =======================
-# 🔹 FUNÇÃO ATUALIZADA — COLETA AUTOMÁTICA DE TODOS OS VÍDEOS
+# 📁 Caminhos
 # =======================
-def get_youtube_metrics(youtube, metadata):
-    print("🎥 Coletando métricas do YouTube...")
-
-    # 🔸 1. Coleta dados gerais do canal
-    channel_stats = youtube.channels().list(part="statistics", mine=True).execute()
-    channel_data = channel_stats["items"][0]["statistics"]
-
-    # 🔸 2. Descobre o ID do canal
-    channel_id = channel_stats["items"][0]["id"]
-
-    # 🔸 3. Busca todos os vídeos do canal (com paginação)
-    all_video_ids = []
-    next_page_token = None
-
-    while True:
-        res = youtube.search().list(
-            part="id",
-            channelId=channel_id,
-            maxResults=50,
-            type="video",
-            order="date",
-            pageToken=next_page_token
-        ).execute()
-
-        for item in res.get("items", []):
-            vid = item["id"]["videoId"]
-            all_video_ids.append(vid)
-
-        next_page_token = res.get("nextPageToken")
-        if not next_page_token:
-            break
-
-    print(f"🔎 Encontrados {len(all_video_ids)} vídeos no canal.")
-
-    # 🔸 4. Busca métricas de cada vídeo em lotes de 50 (limite da API)
-    video_metrics = []
-    for i in range(0, len(all_video_ids), 50):
-        batch = all_video_ids[i:i + 50]
-        stats_res = youtube.videos().list(part="snippet,statistics", id=",".join(batch)).execute()
-
-        for item in stats_res.get("items", []):
-            vid = item["id"]
-            snippet = item.get("snippet", {})
-            stats = item.get("statistics", {})
-
-            video_metrics.append({
-                "video_id": vid,
-                "title": snippet.get("title", ""),
-                "views": int(stats.get("viewCount", 0)),
-                "likes": int(stats.get("likeCount", 0)),
-                "comments": int(stats.get("commentCount", 0)),
-                "publishedAt": snippet.get("publishedAt", "")
-            })
-
-    summary = {
-        "viewCount": int(channel_data.get("viewCount", 0)),
-        "subscriberCount": int(channel_data.get("subscriberCount", 0)),
-        "videoCount": int(channel_data.get("videoCount", 0)),
-        "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
-    }
-
-    print(f"✅ Coletadas métricas de {len(video_metrics)} vídeos do YouTube.")
-
-    return {
-        "summary": summary,
-        "videos": video_metrics
-    }
+DATA_DIR = "data"
+METRICS_PATH = os.path.join(DATA_DIR, "metrics.json")
+METADATA_PATH = "metadata.json"
+GANCHO_PATH = "gancho_data.json"
+RESULT_PATH = os.path.join(DATA_DIR, "analise_ganchos.json")
+STATE_PATH = os.path.join(DATA_DIR, "state.json")
 
 # =======================
-# 🔹 FUNÇÕES DO INSTAGRAM
+# ⚙️ Configurações
 # =======================
-def get_instagram_metrics(metadata):
-    print("📸 Coletando métricas do Instagram...")
+MIN_HOURS_BETWEEN_POSTS = 12
+POST_HOURS = list(range(6, 24))  # horários possíveis (6h às 23h)
+WEIGHTS = {
+    "views": 1,
+    "likes": 5,
+    "comments": 10
+}
 
-    base_url = "https://graph.facebook.com"
-    fields = (
-        "id,caption,media_type,media_url,thumbnail_url,timestamp,"
-        "permalink,like_count,comments_count,children{media_url,media_type}"
-    )
-    url = f"{base_url}/{IG_USER_ID}/media?fields={fields}&access_token={GRAPH_API_TOKEN}"
+# =======================
+# 🔹 Utilitários
+# =======================
+def load_json(path):
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-    all_posts = []
-    try:
-        # 🔁 Paginação — busca todas as páginas
-        while url:
-            r = requests.get(url)
-            data = r.json()
+def save_json(data, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
-            if "error" in data:
-                print("❌ Erro retornado pela API:", data["error"])
-                break
+# =======================
+# 🔹 Análise de desempenho
+# =======================
+def analisar_desempenho(metrics, metadata, ganchos):
+    analise = {}
 
-            posts = data.get("data", [])
-            all_posts.extend(posts)
+    # YouTube
+    for v in metrics["youtube"]["videos"]:
+        for file, meta in metadata.items():
+            if meta["youtube_id"] == v["video_id"]:
+                g = meta["gancho"]
+                analise.setdefault(g, {"views": [], "likes": [], "comments": [], "horarios": []})
+                analise[g]["views"].append(v["views"])
+                analise[g]["likes"].append(v["likes"])
+                analise[g]["comments"].append(v["comments"])
+                hora = datetime.datetime.fromisoformat(v["publishedAt"].replace("Z", "+00:00")).hour
+                analise[g]["horarios"].append(hora)
 
-            # Verifica se há próxima página
-            url = data.get("paging", {}).get("next")
+    # Instagram
+    for p in metrics["instagram"]["posts"]:
+        for file, meta in metadata.items():
+            if meta["instagram_id"] == p["id"]:
+                g = meta["gancho"]
+                analise.setdefault(g, {"views": [], "likes": [], "comments": [], "horarios": []})
+                analise[g]["likes"].append(p["likes"])
+                analise[g]["comments"].append(p["comments"])
+                hora = datetime.datetime.fromisoformat(p["timestamp"].replace("Z", "+00:00")).hour
+                analise[g]["horarios"].append(hora)
 
-    except Exception as e:
-        print("❌ Erro ao acessar a API do Instagram:", e)
-        return {"summary": {}, "posts": []}
+    # Calcular médias
+    resultados = []
+    for g, d in analise.items():
+        avg_views = mean(d["views"]) if d["views"] else 0
+        avg_likes = mean(d["likes"]) if d["likes"] else 0
+        avg_comments = mean(d["comments"]) if d["comments"] else 0
+        score = avg_views * WEIGHTS["views"] + avg_likes * WEIGHTS["likes"] + avg_comments * WEIGHTS["comments"]
+        hora_media = mean(d["horarios"]) if d["horarios"] else None
 
-    if not all_posts:
-        print("⚠️ Nenhum post encontrado. Verifique GRAPH_API_TOKEN e IG_USER_ID.")
-        return {"summary": {}, "posts": []}
-
-    insta_metrics = []
-    total_likes = total_comments = 0
-
-    for post in all_posts:
-        caption = post.get("caption", "")
-        like_count = post.get("like_count", 0)
-        comments_count = post.get("comments_count", 0)
-        total_likes += like_count
-        total_comments += comments_count
-
-        # tenta associar o post com metadados existentes
-        match = next(
-            (v for k, v in metadata.items() if caption and caption.strip() in v.get("description", "")),
-            None
-        )
-
-        insta_metrics.append({
-            "id": post.get("id"),
-            "caption": caption,
-            "media_type": post.get("media_type"),
-            "media_url": post.get("media_url"),
-            "thumbnail_url": post.get("thumbnail_url"),
-            "permalink": post.get("permalink"),
-            "timestamp": post.get("timestamp"),
-            "likes": like_count,
-            "comments": comments_count,
-            "children": post.get("children", {}).get("data", []),
-            "matched_metadata": match
+        resultados.append({
+            "gancho": g,
+            "titulo": ganchos[g]["title"],
+            "views_medio": round(avg_views),
+            "likes_medio": round(avg_likes),
+            "comentarios_medio": round(avg_comments),
+            "score": round(score),
+            "melhor_horario": round(hora_media) if hora_media is not None else None
         })
 
-    summary = {
-        "totalPosts": len(insta_metrics),
-        "totalLikes": total_likes,
-        "totalComments": total_comments,
-        "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
-    }
-
-    print(f"✅ Coletados {len(insta_metrics)} posts do Instagram.")
-
-    return {"summary": summary, "posts": insta_metrics}
-
+    return resultados
 
 # =======================
-# 🔹 AUTENTICAÇÃO YOUTUBE
+# 🔹 Escolha inteligente
 # =======================
-def get_youtube_service():
-    token_pickle_data = os.getenv("TOKEN_PICKLE_COMPLETE")
-    if not token_pickle_data:
-        raise Exception("TOKEN_PICKLE_COMPLETE não encontrado!")
+def escolher_proximo_gancho(resultados, state):
+    gancho_scores = {r["gancho"]: r["score"] for r in resultados}
+    total = sum(gancho_scores.values()) or 1
+    pesos = {g: (score / total) for g, score in gancho_scores.items()}
+    escolha = random.choices(list(pesos.keys()), weights=list(pesos.values()), k=1)[0]
+    state["ultimo_gancho"] = escolha
+    return escolha, pesos
 
-    token_pickle_bytes = pickle.loads(base64.b64decode(token_pickle_data))
-    return build("youtube", "v3", credentials=token_pickle_bytes)
+def escolher_horario(resultados, state):
+    ultimo_post = state.get("ultimo_post")
+    agora = datetime.datetime.utcnow()
+
+    # Garante espaçamento mínimo de 12h
+    if ultimo_post:
+        ultima_data = datetime.datetime.fromisoformat(ultimo_post)
+        delta_horas = (agora - ultima_data).total_seconds() / 3600
+        if delta_horas < MIN_HOURS_BETWEEN_POSTS:
+            proximo = ultima_data + datetime.timedelta(hours=MIN_HOURS_BETWEEN_POSTS)
+            return proximo.hour
+
+    # Busca horário médio entre top 3 ganchos
+    top3 = sorted(resultados, key=lambda x: x["score"], reverse=True)[:3]
+    horas = [r["melhor_horario"] for r in top3 if r["melhor_horario"]]
+    if horas:
+        return round(mean(horas))
+    else:
+        return random.choice(POST_HOURS)
 
 # =======================
-# 🔹 EXECUÇÃO PRINCIPAL
+# 🔹 Execução principal
 # =======================
 def main():
-    print("📊 Coletando métricas...")
+    metrics = load_json(METRICS_PATH)
+    metadata = load_json(METADATA_PATH)
+    ganchos = load_json(GANCHO_PATH)
+    state = load_json(STATE_PATH)
 
-    if not os.path.exists(metadata_path):
-        raise FileNotFoundError("metadata.json não encontrado!")
+    if not metrics or not metadata or not ganchos:
+        print("⚠️ Arquivos de dados incompletos, verifique os JSONs.")
+        return
 
-    with open(metadata_path, "r") as f:
-        metadata = json.load(f)
+    resultados = analisar_desempenho(metrics, metadata, ganchos)
+    resultados.sort(key=lambda x: x["score"], reverse=True)
+    save_json(resultados, RESULT_PATH)
 
-    youtube = get_youtube_service()
-    youtube_data = get_youtube_metrics(youtube, metadata)
-    instagram_data = get_instagram_metrics(metadata)
+    proximo_gancho, pesos = escolher_proximo_gancho(resultados, state)
+    proximo_horario = escolher_horario(resultados, state)
 
-    final_data = {
-        "youtube": youtube_data,
-        "instagram": instagram_data
-    }
+    # Atualiza histórico + recomendações
+    state.update({
+        "ultimo_post": datetime.datetime.utcnow().isoformat(),
+        "pesos_ganchos": pesos,
+        "proximo_gancho": proximo_gancho,
+        "proximo_titulo": ganchos[proximo_gancho]["title"],
+        "proxima_legenda": ganchos[proximo_gancho]["description"],
+        "proximas_tags": ganchos[proximo_gancho]["tags"],
+        "proximo_horario": proximo_horario
+    })
+    save_json(state, STATE_PATH)
 
-    with open(metrics_path, "w") as f:
-        json.dump(final_data, f, indent=4)
-
-    print("✅ Métricas salvas em", metrics_path)
-
-    
+    print("\n✅ Análise concluída!")
+    print(f"🏆 Próximo gancho sugerido: {proximo_gancho} — {ganchos[proximo_gancho]['title']}")
+    print(f"🕐 Melhor horário estimado: {proximo_horario}:00")
+    print(f"📁 Estado salvo em {STATE_PATH}")
+    print(f"📊 Resultados salvos em {RESULT_PATH}")
 
 if __name__ == "__main__":
     main()
-
-# =======================
-# 🔹 COMMIT AUTOMÁTICO
-# =======================
-def git_commit_metrics():
-    subprocess.run(["git", "config", "--global", "user.name", "github-actions"], check=True)
-    subprocess.run(["git", "config", "--global", "user.email", "actions@github.com"], check=True)
-    subprocess.run(["git", "add", "data/metrics.json"], check=True)
-    subprocess.run(["git", "commit", "-m", "Atualiza métricas do YouTube e Instagram"], check=False)
-    subprocess.run(["git", "push"], check=False)
-
-git_commit_metrics()
