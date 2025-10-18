@@ -1,9 +1,12 @@
-name: Auto Upload + Optimization
+name: ORACLE
 
 on:
   schedule:
     - cron: "0 */12 * * *" # executa a cada 12h
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   upload_and_optimize:
