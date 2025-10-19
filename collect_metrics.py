@@ -136,9 +136,9 @@ def get_instagram_metrics(metadata):
         total_likes += like_count
         total_comments += comments_count
 
-        # Associar com metadata usando ID
+        # tenta associar o post com metadados existentes
         match = next(
-            (v for k, v in metadata.items() if v.get("instagram_id") == post.get("id")),
+            (v for k, v in metadata.items() if caption and caption.strip() in v.get("description", "")),
             None
         )
 
