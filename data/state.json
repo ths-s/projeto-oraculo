@@ -6,5 +6,7 @@
     "gancho2": 0.5
   },
   "proximo_gancho": "gancho2",
-  "proximo_horario": 2
+  "proximo_horario": 2,
+  "ultimo_gancho_postado": "gancho2",
+  "ultimo_video_postado": "202510151716 (1).mp4"
 }
