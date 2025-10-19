@@ -1,188 +1,175 @@
 import json
-import datetime
-import random
-from statistics import mean
-import matplotlib.pyplot as plt
 import os
-import subprocess
+import re
+import datetime
+from statistics import mean
 
-
-
-# =======================
-# 📁 Caminhos
-# =======================
+# ======================
+# Caminhos
+# ======================
 DATA_DIR = "data"
 METRICS_PATH = os.path.join(DATA_DIR, "metrics.json")
 METADATA_PATH = "metadata.json"
-GANCHO_PATH = "gancho_data.json"
-RESULT_PATH = os.path.join(DATA_DIR, "analise_ganchos.json")
-STATE_PATH = os.path.join(DATA_DIR, "state.json")
+RANKING_PATH = os.path.join(DATA_DIR, "gancho_ranking.json")
 
-# =======================
-# ⚙️ Configurações
-# =======================
-MIN_HOURS_BETWEEN_POSTS = 12
-POST_HOURS = list(range(6, 24))  # horários possíveis (6h às 23h)
-WEIGHTS = {
-    "views": 1,
-    "likes": 5,
-    "comments": 10
+# ======================
+# Funções de apoio
+# ======================
+def normalize(values):
+    """Normaliza uma lista para 0–1"""
+    if not values or max(values) == 0:
+        return [0 for _ in values]
+    max_v = max(values)
+    return [v / max_v for v in values]
+
+def title_match(title, gancho_title):
+    """Verifica correspondência aproximada entre título do vídeo e título do gancho"""
+    title = title.lower()
+    gancho_title = gancho_title.lower()
+    words = re.findall(r'\w+', gancho_title)
+    return any(w in title for w in words[:3])
+
+def time_weight(timestamp):
+    """Retorna um peso de 0.5 a 1.0 baseado na recência (últimos 30 dias)"""
+    try:
+        dt = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        days = (datetime.datetime.now(datetime.timezone.utc) - dt).days
+        return max(0.5, 1 - (days / 60))  # decai até 0.5 em 60 dias
+    except Exception:
+        return 1.0
+
+def extract_hour(timestamp):
+    try:
+        dt = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        return dt.hour
+    except Exception:
+        return None
+
+# ======================
+# Carregar dados
+# ======================
+with open(METRICS_PATH, encoding="utf-8") as f:
+    metrics = json.load(f)
+
+with open(METADATA_PATH, encoding="utf-8") as f:
+    metadata = json.load(f)
+
+# ======================
+# Análise YouTube
+# ======================
+yt_videos = metrics.get("youtube", {}).get("videos", [])
+yt_scores = []
+yt_hours = []
+
+if yt_videos:
+    yt_views = [v.get("views", 0) for v in yt_videos]
+    yt_likes = [v.get("likes", 0) for v in yt_videos]
+    yt_comments = [v.get("comments", 0) for v in yt_videos]
+
+    norm_views = normalize(yt_views)
+    norm_likes = normalize(yt_likes)
+    norm_comments = normalize(yt_comments)
+
+    for i, v in enumerate(yt_videos):
+        weight = time_weight(v.get("timestamp", ""))
+        score = (norm_views[i]*0.6 + norm_likes[i]*0.3 + norm_comments[i]*0.1) * 100 * weight
+        v["score"] = round(score, 2)
+        yt_scores.append(v["score"])
+
+        h = extract_hour(v.get("timestamp", ""))
+        if h is not None:
+            yt_hours.append(h)
+
+# ======================
+# Análise Instagram
+# ======================
+ig_posts = metrics.get("instagram", {}).get("posts", [])
+ig_scores = []
+ig_hours = []
+
+if ig_posts:
+    avg_likes = mean([p.get("likes", 0) for p in ig_posts]) if ig_posts else 1
+    avg_comments = mean([p.get("comments", 0) for p in ig_posts]) if ig_posts else 1
+
+    for p in ig_posts:
+        weight = time_weight(p.get("timestamp", ""))
+        score = ((p.get("likes", 0)/avg_likes)*0.7 + (p.get("comments", 0)/avg_comments)*0.3) * 100 * weight
+        p["score"] = min(round(score, 2), 100)
+        ig_scores.append(p["score"])
+
+        h = extract_hour(p.get("timestamp", ""))
+        if h is not None:
+            ig_hours.append(h)
+
+# ======================
+# Relacionar ganchos
+# ======================
+for gancho_key, gancho_data in metadata.items():
+    g_title = gancho_data["title"]
+
+    yt_match_scores = [v["score"] for v in yt_videos if title_match(v["title"], g_title)]
+    ig_match_scores = [p["score"] for p in ig_posts if p.get("caption") and title_match(p["caption"], g_title)]
+
+    score_youtube = mean(yt_match_scores) if yt_match_scores else 0
+    score_instagram = mean(ig_match_scores) if ig_match_scores else 0
+    score_total = round(score_youtube*0.6 + score_instagram*0.4, 2)
+
+    gancho_data["score_youtube"] = round(score_youtube, 2)
+    gancho_data["score_instagram"] = round(score_instagram, 2)
+    gancho_data["score_total"] = score_total
+
+# ======================
+# Normalização final (0–100)
+# ======================
+all_scores = [g["score_total"] for g in metadata.values()]
+if any(all_scores):
+    max_score = max(all_scores)
+    for g in metadata.values():
+        g["score_total_normalized"] = round((g["score_total"]/max_score)*100, 2) if max_score > 0 else 0
+else:
+    for g in metadata.values():
+        g["score_total_normalized"] = 0
+
+# ======================
+# Ranking geral
+# ======================
+ranking = sorted(
+    [{"title": g["title"], "score": g["score_total_normalized"]} for g in metadata.values()],
+    key=lambda x: x["score"],
+    reverse=True
+)
+
+# ======================
+# Análise de horário
+# ======================
+def best_hour(hours_list):
+    if not hours_list:
+        return None
+    # agrupa e pega hora mais frequente
+    from collections import Counter
+    return Counter(hours_list).most_common(1)[0][0]
+
+best_yt_hour = best_hour(yt_hours)
+best_ig_hour = best_hour(ig_hours)
+
+summary = {
+    "melhor_horario_youtube": f"{best_yt_hour:02d}:00" if best_yt_hour is not None else "Indefinido",
+    "melhor_horario_instagram": f"{best_ig_hour:02d}:00" if best_ig_hour is not None else "Indefinido",
+    "total_ganchos": len(metadata),
+    "total_videos_analisados": len(yt_videos),
+    "total_posts_analisados": len(ig_posts),
 }
 
-# =======================
-# 🔹 Utilitários
-# =======================
-def load_json(path):
-    if not os.path.exists(path):
-        return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+# ======================
+# Salvar resultados
+# ======================
+with open(METADATA_PATH, "w", encoding="utf-8") as f:
+    json.dump(metadata, f, ensure_ascii=False, indent=2)
 
-def save_json(data, path):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+with open(RANKING_PATH, "w", encoding="utf-8") as f:
+    json.dump({"ranking": ranking, "resumo": summary}, f, ensure_ascii=False, indent=2)
 
-# =======================
-# 🔹 Análise de desempenho
-# =======================
-def analisar_desempenho(metrics, metadata, ganchos):
-    analise = {}
-
-    # YouTube
-    for v in metrics["youtube"]["videos"]:
-        for file, meta in metadata.items():
-            if meta["youtube_id"] == v["video_id"]:
-                g = meta["gancho"]
-                analise.setdefault(g, {"views": [], "likes": [], "comments": [], "horarios": []})
-                analise[g]["views"].append(v["views"])
-                analise[g]["likes"].append(v["likes"])
-                analise[g]["comments"].append(v["comments"])
-                hora = datetime.datetime.fromisoformat(v["publishedAt"].replace("Z", "+00:00")).hour
-                analise[g]["horarios"].append(hora)
-
-    # Instagram
-    for p in metrics["instagram"]["posts"]:
-        for file, meta in metadata.items():
-            if meta["instagram_id"] == p["id"]:
-                g = meta["gancho"]
-                analise.setdefault(g, {"views": [], "likes": [], "comments": [], "horarios": []})
-                analise[g]["likes"].append(p["likes"])
-                analise[g]["comments"].append(p["comments"])
-                hora = datetime.datetime.fromisoformat(p["timestamp"].replace("Z", "+00:00")).hour
-                analise[g]["horarios"].append(hora)
-
-    # Calcular médias
-    resultados = []
-    for g, d in analise.items():
-        avg_views = mean(d["views"]) if d["views"] else 0
-        avg_likes = mean(d["likes"]) if d["likes"] else 0
-        avg_comments = mean(d["comments"]) if d["comments"] else 0
-        score = avg_views * WEIGHTS["views"] + avg_likes * WEIGHTS["likes"] + avg_comments * WEIGHTS["comments"]
-        hora_media = mean(d["horarios"]) if d["horarios"] else None
-
-        resultados.append({
-            "gancho": g,
-            "titulo": ganchos[g]["title"],
-            "views_medio": round(avg_views),
-            "likes_medio": round(avg_likes),
-            "comentarios_medio": round(avg_comments),
-            "score": round(score),
-            "melhor_horario": round(hora_media) if hora_media is not None else None
-        })
-
-    return resultados
-
-# =======================
-# 🔹 Escolha inteligente
-# =======================
-def escolher_proximo_gancho(resultados, state):
-    # Histórico de pontuação
-    gancho_scores = {r["gancho"]: r["score"] for r in resultados}
-    total = sum(gancho_scores.values()) or 1
-
-    # Distribuição probabilística proporcional ao desempenho
-    pesos = {g: (score / total) for g, score in gancho_scores.items()}
-
-    escolha = random.choices(list(pesos.keys()), weights=list(pesos.values()), k=1)[0]
-
-    state["ultimo_gancho"] = escolha
-    return escolha, pesos
-
-def escolher_horario(resultados, state):
-    ultimo_post = state.get("ultimo_post")
-    agora = datetime.datetime.utcnow()
-
-    # Garante espaçamento de 12h
-    if ultimo_post:
-        ultima_data = datetime.datetime.fromisoformat(ultimo_post)
-        delta_horas = (agora - ultima_data).total_seconds() / 3600
-        if delta_horas < MIN_HOURS_BETWEEN_POSTS:
-            proximo = ultima_data + datetime.timedelta(hours=MIN_HOURS_BETWEEN_POSTS)
-            return proximo.hour
-
-    # Busca horário mais comum entre os top ganchos
-    top3 = sorted(resultados, key=lambda x: x["score"], reverse=True)[:3]
-    horas = [r["melhor_horario"] for r in top3 if r["melhor_horario"]]
-    if horas:
-        return round(mean(horas))
-    else:
-        return random.choice(POST_HOURS)
-
-# =======================
-# 🔹 Gerar gráfico
-# =======================
-def gerar_grafico(resultados):
-    nomes = [r["gancho"] for r in resultados]
-    scores = [r["score"] for r in resultados]
-    plt.bar(nomes, scores)
-    plt.title("Desempenho dos Ganchos (Score Total)")
-    plt.xlabel("Gancho")
-    plt.ylabel("Score")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.savefig(os.path.join(DATA_DIR, "grafico_ganchos.png"))
-    plt.close()
-
-# =======================
-# 🔹 Execução principal
-# =======================
-def main():
-    metrics = load_json(METRICS_PATH)
-    metadata = load_json(METADATA_PATH)
-    ganchos = load_json(GANCHO_PATH)
-    state = load_json(STATE_PATH)
-
-    resultados = analisar_desempenho(metrics, metadata, ganchos)
-    resultados.sort(key=lambda x: x["score"], reverse=True)
-
-    gerar_grafico(resultados)
-    save_json(resultados, RESULT_PATH)
-
-    proximo_gancho, pesos = escolher_proximo_gancho(resultados, state)
-    proximo_horario = escolher_horario(resultados, state)
-
-    # Atualiza histórico
-    state["ultimo_post"] = datetime.datetime.utcnow().isoformat()
-    state["pesos_ganchos"] = pesos
-    state["proximo_gancho"] = proximo_gancho
-    state["proximo_horario"] = proximo_horario
-    save_json(state, STATE_PATH)
-
-    print("✅ Análise concluída!")
-    print(f"🏆 Próximo gancho sugerido: {proximo_gancho} — {ganchos[proximo_gancho]['title']}")
-    print(f"🕐 Melhor horário estimado: {proximo_horario}:00")
-    print(f"📊 Resultados salvos em {RESULT_PATH}")
-    print(f"📁 Estado salvo em {STATE_PATH}")
-
-    # 🔹 Commit automático (para manter o histórico de análises)
-    try:
-        subprocess.run(["git", "add", "data/analise_ganchos.json", "data/state.json"], check=True)
-        subprocess.run(["git", "commit", "-m", "📈 Atualiza análise e próxima recomendação"], check=False)
-        subprocess.run(["git", "push"], check=False)
-    except Exception as e:
-        print("⚠️ Erro ao fazer commit automático:", e)
-
-
-if __name__ == "__main__":
-    main()
+print("✅ Análise concluída!")
+print(f"🏆 Ranking salvo em {RANKING_PATH}")
+print(f"🕒 Melhor horário YouTube: {summary['melhor_horario_youtube']}")
+print(f"🕒 Melhor horário Instagram: {summary['melhor_horario_instagram']}")
