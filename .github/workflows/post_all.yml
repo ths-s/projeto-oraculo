@@ -15,6 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure folders exist
+        run: |
+          mkdir -p videos/pending
+          mkdir -p videos/posted
+          mkdir -p data
+          echo "✅ Pastas de vídeos verificadas/criadas."
+
       - name: Install ngrok
         run: |
           curl -s https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz | tar xz
@@ -27,7 +34,6 @@ jobs:
           date
           echo "🕐 Horário UTC (para referência):"
           date -u
-
 
       - name: Authenticate ngrok
         run: ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
@@ -59,25 +65,25 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python3 analyze_metrics.py
 
-      #3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
+      # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
       - name: Upload Video to YouTube
         env:
           YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
           YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
         run: python3 upload_youtube.py
-
-       #(opcional) Upload Instagram — pode ser reativado depois
+          
+      # 4️⃣ Upload Instagram
       - name: Upload to Instagram
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
         run: python3 upload_instagram.py
 
-      # 4️⃣ Commit e push automáticos dos resultados
+      # 5️⃣ Commit e push automáticos dos resultados e arquivos novos
       - name: Commit Updated Metrics and State
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
-          git add data/metrics.json data/analise_ganchos.json data/state.json || true
-          git commit -m "📊 Atualiza métricas e define próximo gancho/horário" || true
-          git push || true
+          git add -A
+          git commit -m "📊 Atualiza métricas, análises e vídeos postados" || echo "Nenhuma mudança para commitar"
+          git push || echo "Nada para enviar"
