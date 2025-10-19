@@ -6,13 +6,13 @@ import googleapiclient.discovery
 import googleapiclient.http
 from google.auth.transport.requests import Request
 import json
-import random
 
 VIDEO_FOLDER = "videos/pending"
 CLIENT_SECRETS_FILE = "client_secret.json"
 TOKEN_FILE = "token.pickle"
 METADATA_FILE = "metadata.json"
 GANCHO_FILE = "gancho_data.json"
+STATE_FILE = "data/state.json"
 
 
 def setup_credentials_files():
@@ -83,6 +83,18 @@ def save_metadata(metadata):
         json.dump(metadata, f, indent=4, ensure_ascii=False)
 
 
+def load_state():
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def save_state(state):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=4, ensure_ascii=False)
+
+
 def upload_video(file_path, title, description, tags=None, category_id="22", privacy="public"):
     youtube = get_authenticated_service()
     request_body = {
@@ -107,17 +119,29 @@ if __name__ == "__main__":
     videos = find_videos()
     gancho_data = load_gancho_data()
     metadata = load_metadata()
+    state = load_state()
 
     if not videos:
         print("⚠️ Nenhum vídeo encontrado em", VIDEO_FOLDER)
     else:
-        # Escolhe vídeo e gancho aleatoriamente
-        video_path = videos[0]
-        video_name = os.path.basename(video_path)
-        gancho_name = random.choice(list(gancho_data.keys()))
+        # Verificar horário
+        agora = datetime.datetime.utcnow()
+        proximo_horario = state.get("proximo_horario_yt")
+        if agora.hour != proximo_horario:
+            print(f"⚠️ Não é a hora certa para postar no YouTube ({proximo_horario}:00). Aguardando.")
+            exit(0)
+
+        # Usar gancho sugerido do state
+        gancho_name = state.get("proximo_gancho_yt")
+        if not gancho_name or gancho_name not in gancho_data:
+            gancho_name = random.choice(list(gancho_data.keys()))  # Fallback
+
         gancho = gancho_data[gancho_name]
 
-        # Realiza upload
+        video_path = videos[0]
+        video_name = os.path.basename(video_path)
+
+        # Upload
         response = upload_video(
             file_path=video_path,
             title=gancho["title"],
@@ -127,11 +151,15 @@ if __name__ == "__main__":
 
         video_id = response.get("id")
 
-        # Salva no metadata.json
+        # Salvar metadata
         metadata[video_name] = {
             "gancho": gancho_name,
             "youtube_id": video_id,
         }
-
         save_metadata(metadata)
         print(f"📁 Metadata atualizado com ID do vídeo ({video_id}) e gancho {gancho_name}.")
+
+        # Atualizar state
+        state["ultimo_gancho_postado"] = gancho_name  # Compatibilidade, mas pode remover se separado
+        state["ultimo_post_youtube"] = agora.isoformat()
+        save_state(state)

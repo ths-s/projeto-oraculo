@@ -29,6 +29,9 @@ def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def save_json(data, path):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
 def start_ngrok():
     """Inicia ngrok e retorna a URL pública"""
@@ -41,16 +44,6 @@ def start_ngrok():
         print(f"❌ Erro ao iniciar ngrok: {e}")
         ngrok.terminate()
         exit(1)
-
-
-def get_metadata():
-    """Seleciona aleatoriamente um item do metadata.json"""
-    metadata = load_json(METADATA_FILE)
-    if metadata:
-        key = random.choice(list(metadata.keys()))
-        return metadata[key]
-    return {}
-
 
 def wait_for_processing(container_id):
     """Aguarda até que o vídeo esteja pronto para publicação"""
@@ -120,15 +113,25 @@ if __name__ == "__main__":
     # Carregar dados
     state = load_json(STATE_FILE)
     ganchos = load_json(GANCHO_FILE)
-    meta = get_metadata()
+    metadata = load_json(METADATA_FILE)
 
-    proximo_gancho_id = state.get("proximo_gancho")
+    # Verificar horário
+    agora = datetime.datetime.utcnow()
+    proximo_horario = state.get("proximo_horario_ig")
+    if agora.hour != proximo_horario:
+        print(f"⚠️ Não é a hora certa para postar no Instagram ({proximo_horario}:00). Aguardando.")
+        exit(0)
+
+    proximo_gancho_id = state.get("proximo_gancho_ig")
+    if not proximo_gancho_id or proximo_gancho_id not in ganchos:
+        proximo_gancho_id = random.choice(list(ganchos.keys()))  # Fallback
+
     gancho_info = ganchos.get(proximo_gancho_id, {})
 
     gancho_titulo = gancho_info.get("title", "📢 Novo vídeo!")
-    gancho_texto = gancho_info.get("text", gancho_info.get("description", ""))
+    gancho_texto = gancho_info.get("description", "")
 
-    caption_base = meta.get("description", "🚀 Postagem automática via API")
+    caption_base = "🚀 Postagem automática via API"  # Pode ajustar se precisar
     caption = f"{gancho_titulo}\n{gancho_texto}\n{caption_base}".strip()
 
     print("🎯 Gancho recomendado:", proximo_gancho_id or "(nenhum)")
@@ -163,11 +166,17 @@ if __name__ == "__main__":
                 except Exception as e:
                     print(f"⚠️ Não foi possível mover o vídeo: {e}")
 
-                # Atualizar state.json
+                # Atualizar metadata com instagram_id e gancho
+                metadata[video_file] = metadata.get(video_file, {})
+                metadata[video_file]["gancho"] = proximo_gancho_id
+                metadata[video_file]["instagram_id"] = publish_resp["id"]
+                save_json(metadata, METADATA_FILE)
+
+                # Atualizar state
                 state["ultimo_gancho_postado"] = proximo_gancho_id
                 state["ultimo_video_postado"] = video_file
-                with open(STATE_FILE, "w", encoding="utf-8") as f:
-                    json.dump(state, f, indent=2, ensure_ascii=False)
+                state["ultimo_post_instagram"] = agora.isoformat()
+                save_json(state, STATE_FILE)
 
             else:
                 print("❌ Erro ao publicar:", publish_resp)
