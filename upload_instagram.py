@@ -89,6 +89,24 @@ if __name__ == "__main__":
 
         if "id" in publish_resp:
             print(f"✅ Vídeo {video_file} postado com sucesso no Instagram.")
+            # ========================================
+            # 📦 Mover vídeo postado para /videos/posted
+            # ========================================
+            import shutil
+
+            PENDING_DIR = "videos/pending"
+            POSTED_DIR = "videos/posted"
+            os.makedirs(POSTED_DIR, exist_ok=True)
+
+            source = os.path.join(PENDING_DIR, video)
+            dest = os.path.join(POSTED_DIR, video)
+
+            try:
+                shutil.move(source, dest)
+                print(f"📁 Vídeo movido para {POSTED_DIR}/{video}")
+            except Exception as e:
+                print(f"⚠️ Não foi possível mover o vídeo: {e}")
+
         else:
             print("❌ Erro ao publicar:", publish_resp)
     else:
