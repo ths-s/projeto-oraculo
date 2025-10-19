@@ -6,11 +6,30 @@ import json
 import random
 import shutil
 
+# =======================
+# 🔧 Configurações
+# =======================
 ACCESS_TOKEN = os.getenv("IG_ACCESS_TOKEN")
 IG_USER_ID = os.getenv("IG_USER_ID")
 PENDING_DIR = "videos/pending"
 POSTED_DIR = "videos/posted"
+DATA_DIR = "data"
+
+# =======================
+# 📁 Arquivos
+# =======================
 METADATA_FILE = "metadata.json"
+GANCHO_FILE = "gancho_data.json"
+STATE_FILE = os.path.join(DATA_DIR, "state.json")
+
+# =======================
+# ⚙️ Funções utilitárias
+# =======================
+def load_json(path):
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def start_ngrok():
@@ -28,12 +47,10 @@ def start_ngrok():
 
 def get_metadata():
     """Seleciona aleatoriamente um item do metadata.json"""
-    if os.path.exists(METADATA_FILE):
-        with open(METADATA_FILE, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
-        if metadata:
-            key = random.choice(list(metadata.keys()))
-            return metadata[key]
+    metadata = load_json(METADATA_FILE)
+    if metadata:
+        key = random.choice(list(metadata.keys()))
+        return metadata[key]
     return {}
 
 
@@ -54,6 +71,9 @@ def publish_reels(container_id):
     return requests.post(url, data=data).json()
 
 
+# =======================
+# 🚀 Execução principal
+# =======================
 if __name__ == "__main__":
     if not os.path.exists(PENDING_DIR):
         print(f"⚠️ Pasta {PENDING_DIR} não existe.")
@@ -73,12 +93,29 @@ if __name__ == "__main__":
         print(f"❌ Arquivo não encontrado: {video_path}")
         exit(1)
 
+    # =======================
+    # 📊 Dados de análise
+    # =======================
+    state = load_json(STATE_FILE)
+    ganchos = load_json(GANCHO_FILE)
     meta = get_metadata()
-    caption = meta.get("description", "🚀 Postagem automática via API")
 
-    print(f"➡️ Preparando vídeo: {video_file} | Legenda: {caption}")
+    proximo_gancho_id = state.get("proximo_gancho")
+    gancho_info = ganchos.get(proximo_gancho_id, {})
 
-    # Servidor HTTP local
+    gancho_titulo = gancho_info.get("title", "")
+    gancho_texto = gancho_info.get("text", gancho_info.get("description", ""))
+
+    caption_base = meta.get("description", "🚀 Postagem automática via API")
+    caption = f"{gancho_titulo}\n\n{gancho_texto}\n\n{caption_base}".strip()
+
+    print("🎯 Gancho recomendado:", proximo_gancho_id or "(nenhum)")
+    print("🪝 Título:", gancho_titulo)
+    print("💬 Legenda final:\n", caption)
+
+    # =======================
+    # 🌍 Publicação
+    # =======================
     subprocess.Popen(["python3", "-m", "http.server", "8000", "--directory", PENDING_DIR])
     base_url = start_ngrok()
     video_url = f"{base_url}/{video_file}"
@@ -96,11 +133,11 @@ if __name__ == "__main__":
         print("Publish response:", publish_resp)
 
         if "id" in publish_resp:
-            print(f"✅ Vídeo {video_file} postado com sucesso no Instagram.")
+            print(f"✅ Vídeo {video_file} postado com sucesso no Instagram!")
 
-            # ========================================
-            # 📦 Mover vídeo postado para /videos/posted
-            # ========================================
+            # =======================
+            # 📦 Mover vídeo postado
+            # =======================
             os.makedirs(POSTED_DIR, exist_ok=True)
             source = os.path.join(PENDING_DIR, video_file)
             dest = os.path.join(POSTED_DIR, video_file)
@@ -110,6 +147,12 @@ if __name__ == "__main__":
                 print(f"📁 Vídeo movido para {dest}")
             except Exception as e:
                 print(f"⚠️ Não foi possível mover o vídeo: {e}")
+
+            # Atualiza o histórico no state.json
+            state["ultimo_gancho_postado"] = proximo_gancho_id
+            state["ultimo_video_postado"] = video_file
+            with open(STATE_FILE, "w", encoding="utf-8") as f:
+                json.dump(state, f, indent=2, ensure_ascii=False)
 
         else:
             print("❌ Erro ao publicar:", publish_resp)
