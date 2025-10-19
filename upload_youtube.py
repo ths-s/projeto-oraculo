@@ -7,8 +7,10 @@ import googleapiclient.http
 from google.auth.transport.requests import Request
 import json
 import random
+import shutil
 
 VIDEO_FOLDER = "videos/pending"
+POSTED_FOLDER = "videos/posted"
 CLIENT_SECRETS_FILE = "client_secret.json"
 TOKEN_FILE = "token.pickle"
 METADATA_FILE = "metadata.json"
@@ -111,13 +113,12 @@ if __name__ == "__main__":
     if not videos:
         print("⚠️ Nenhum vídeo encontrado em", VIDEO_FOLDER)
     else:
-        # Escolhe vídeo e gancho aleatoriamente
         video_path = videos[0]
         video_name = os.path.basename(video_path)
         gancho_name = random.choice(list(gancho_data.keys()))
         gancho = gancho_data[gancho_name]
 
-        # Realiza upload
+        # Upload para o YouTube
         response = upload_video(
             file_path=video_path,
             title=gancho["title"],
@@ -127,11 +128,19 @@ if __name__ == "__main__":
 
         video_id = response.get("id")
 
-        # Salva no metadata.json
+        # Atualiza metadata.json
         metadata[video_name] = {
             "gancho": gancho_name,
             "youtube_id": video_id,
         }
-
         save_metadata(metadata)
         print(f"📁 Metadata atualizado com ID do vídeo ({video_id}) e gancho {gancho_name}.")
+
+        # ✅ Mover vídeo para 'posted'
+        os.makedirs(POSTED_FOLDER, exist_ok=True)
+        try:
+            new_path = os.path.join(POSTED_FOLDER, video_name)
+            shutil.move(video_path, new_path)
+            print(f"📁 Vídeo movido para {new_path}")
+        except Exception as e:
+            print(f"⚠️ Erro ao mover vídeo para {POSTED_FOLDER}: {e}")
