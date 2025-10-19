@@ -1,10 +1,10 @@
 {
-  "ultimo_gancho": "gancho2",
-  "ultimo_post": "2025-10-18T23:10:07.459469",
+  "ultimo_gancho": "gancho3",
+  "ultimo_post": "2025-10-19T01:55:02.536754",
   "pesos_ganchos": {
     "gancho3": 0.5,
     "gancho2": 0.5
   },
-  "proximo_gancho": "gancho2",
-  "proximo_horario": 15
+  "proximo_gancho": "gancho3",
+  "proximo_horario": 11
 }
