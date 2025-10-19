@@ -1,0 +1,4 @@
+# Ignorar arquivos de autenticação
+token.pickle
+client_secret.json
+*.pickle
