@@ -4,10 +4,12 @@ import time
 import subprocess
 import json
 import random
+import shutil
 
 ACCESS_TOKEN = os.getenv("IG_ACCESS_TOKEN")
 IG_USER_ID = os.getenv("IG_USER_ID")
 PENDING_DIR = "videos/pending"
+POSTED_DIR = "videos/posted"
 METADATA_FILE = "metadata.json"
 
 
@@ -15,16 +17,23 @@ def start_ngrok():
     """Inicia ngrok e retorna a URL pública"""
     ngrok = subprocess.Popen(["ngrok", "http", "8000"], stdout=subprocess.PIPE)
     time.sleep(5)
-    url = requests.get("http://127.0.0.1:4040/api/tunnels").json()["tunnels"][0]["public_url"]
-    return url
+    try:
+        url = requests.get("http://127.0.0.1:4040/api/tunnels").json()["tunnels"][0]["public_url"]
+        return url
+    except Exception as e:
+        print(f"❌ Erro ao iniciar ngrok: {e}")
+        ngrok.terminate()
+        exit(1)
 
 
 def get_metadata():
+    """Seleciona aleatoriamente um item do metadata.json"""
     if os.path.exists(METADATA_FILE):
         with open(METADATA_FILE, "r", encoding="utf-8") as f:
             metadata = json.load(f)
-        key = random.choice(list(metadata.keys()))
-        return metadata[key]
+        if metadata:
+            key = random.choice(list(metadata.keys()))
+            return metadata[key]
     return {}
 
 
@@ -50,7 +59,7 @@ if __name__ == "__main__":
         print(f"⚠️ Pasta {PENDING_DIR} não existe.")
         exit(0)
 
-    files = sorted(os.listdir(PENDING_DIR))
+    files = sorted([f for f in os.listdir(PENDING_DIR) if f.endswith(".mp4")])
     print("📂 Arquivos encontrados:", files)
 
     if not files:
@@ -69,7 +78,7 @@ if __name__ == "__main__":
 
     print(f"➡️ Preparando vídeo: {video_file} | Legenda: {caption}")
 
-    # Servidor HTTP local para servir os vídeos
+    # Servidor HTTP local
     subprocess.Popen(["python3", "-m", "http.server", "8000", "--directory", PENDING_DIR])
     base_url = start_ngrok()
     video_url = f"{base_url}/{video_file}"
@@ -80,7 +89,6 @@ if __name__ == "__main__":
 
     if "id" in upload_resp:
         container_id = upload_resp["id"]
-
         print("⏳ Aguardando processamento...")
         time.sleep(30)
 
@@ -89,21 +97,17 @@ if __name__ == "__main__":
 
         if "id" in publish_resp:
             print(f"✅ Vídeo {video_file} postado com sucesso no Instagram.")
+
             # ========================================
             # 📦 Mover vídeo postado para /videos/posted
             # ========================================
-            import shutil
-
-            PENDING_DIR = "videos/pending"
-            POSTED_DIR = "videos/posted"
             os.makedirs(POSTED_DIR, exist_ok=True)
-
-            source = os.path.join(PENDING_DIR, video)
-            dest = os.path.join(POSTED_DIR, video)
+            source = os.path.join(PENDING_DIR, video_file)
+            dest = os.path.join(POSTED_DIR, video_file)
 
             try:
                 shutil.move(source, dest)
-                print(f"📁 Vídeo movido para {POSTED_DIR}/{video}")
+                print(f"📁 Vídeo movido para {dest}")
             except Exception as e:
                 print(f"⚠️ Não foi possível mover o vídeo: {e}")
 
