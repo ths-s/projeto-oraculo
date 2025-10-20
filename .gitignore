@@ -2,5 +2,3 @@
 token.pickle
 client_secret.json
 *.pickle
-videos/pending/
-videos/posted/
