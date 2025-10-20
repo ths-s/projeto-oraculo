@@ -79,6 +79,9 @@ jobs:
 #          IG_USER_ID: ${{ secrets.IG_USER_ID }}
 #        run: python3 upload_instagram.py
 
+      # 4️⃣.5️⃣ Mover vídeo postado
+      - name: Move Posted Video
+        run: python3 move_posted_video.py
 
 
       # 5️⃣ Commit e push automáticos dos resultados
