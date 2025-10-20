@@ -155,9 +155,12 @@ for gancho_key, gancho_data in list(metadata.items()):
     if not isinstance(gancho_data, dict):
         skipped.append((gancho_key, "não é objeto/dict"))
         continue
-    if "title" not in gancho_data:
-        skipped.append((gancho_key, "sem campo 'title'"))
+    if "title" not in gancho_data and "description" not in gancho_data:
+        skipped.append((gancho_key, "sem campo 'title' ou 'description'"))
         continue
+    if "title" not in gancho_data:
+        gancho_data["title"] = gancho_data.get("description", "")
+
 
     # buscar correspondências no Youtube (título)
     yt_matches = [v["score"] for v in yt_videos if title_match_text(v.get("title", ""), gancho_data)]
