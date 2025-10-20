@@ -7,6 +7,7 @@ PENDING_DIR = "videos/pending"
 POSTED_DIR = "videos/posted"
 STATE_PATH = "data/state.json"
 
+
 def load_state():
     if not os.path.exists(STATE_PATH):
         return {"posted_videos": []}
@@ -16,15 +17,17 @@ def load_state():
     except Exception:
         return {"posted_videos": []}
 
+
 def save_state(state):
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
     with open(STATE_PATH, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=4, ensure_ascii=False)
 
-def extract_number(filename):
-    """Extrai o primeiro número encontrado no nome do arquivo."""
-    match = re.search(r'\d+', filename)
-    return int(match.group()) if match else float('inf')
+
+def natural_sort_key(s):
+    """Divide o nome em partes numéricas e alfabéticas (ordem natural, igual ao Windows)."""
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+
 
 def move_first_unposted_video():
     os.makedirs(PENDING_DIR, exist_ok=True)
@@ -40,8 +43,8 @@ def move_first_unposted_video():
         and f not in posted
     ]
 
-    # Ordena numericamente (por número no nome)
-    pending = sorted(pending, key=extract_number)
+    # Ordena na mesma forma que o Windows (ordem natural)
+    pending = sorted(pending, key=natural_sort_key)
 
     if not pending:
         print("⚠️ Nenhum novo vídeo para mover (todos já postados).")
@@ -51,14 +54,26 @@ def move_first_unposted_video():
     src = os.path.join(PENDING_DIR, video)
     dst = os.path.join(POSTED_DIR, video)
 
-    shutil.move(src, dst)
+    if not os.path.exists(src):
+        print(f"❌ Arquivo não encontrado: {src}")
+        return
 
-    # Atualiza histórico e salva
-    posted.add(video)
-    state["posted_videos"] = sorted(list(posted))
-    save_state(state)
+    # Tenta mover, e se não conseguir, copia e remove (para garantir)
+    try:
+        shutil.move(src, dst)
+    except Exception as e:
+        print(f"⚠️ Falha ao mover diretamente ({e}), tentando copiar/remover...")
+        shutil.copy2(src, dst)
+        os.remove(src)
 
-    print(f"✅ Vídeo movido com sucesso: {video}")
+    if os.path.exists(dst) and not os.path.exists(src):
+        print(f"✅ Vídeo movido com sucesso: {video}")
+        posted.add(video)
+        state["posted_videos"] = sorted(list(posted))
+        save_state(state)
+    else:
+        print(f"❌ Falha ao mover o vídeo: {video}")
+
 
 if __name__ == "__main__":
     move_first_unposted_video()
