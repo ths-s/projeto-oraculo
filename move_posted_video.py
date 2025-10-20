@@ -6,56 +6,50 @@ PENDING_DIR = "videos/pending"
 POSTED_DIR = "videos/posted"
 STATE_PATH = "data/state.json"
 
-def move_first_video():
+def load_state():
+    if not os.path.exists(STATE_PATH):
+        return {"posted_videos": []}
+    try:
+        with open(STATE_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {"posted_videos": []}
+
+def save_state(state):
+    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
+    with open(STATE_PATH, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=4, ensure_ascii=False)
+
+def move_first_unposted_video():
     os.makedirs(PENDING_DIR, exist_ok=True)
     os.makedirs(POSTED_DIR, exist_ok=True)
-    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
 
-    # Carrega histórico
-    if os.path.exists(STATE_PATH):
-        with open(STATE_PATH, "r", encoding="utf-8") as f:
-            try:
-                state = json.load(f)
-            except json.JSONDecodeError:
-                state = {}
-    else:
-        state = {}
+    state = load_state()
+    posted = set(state.get("posted_videos", []))
 
-    posted_videos = set(state.get("posted_videos", []))
-
-    # Lista vídeos ainda não postados
-    pending_videos = [
+    # Lista vídeos válidos ainda não movidos
+    pending = [
         f for f in sorted(os.listdir(PENDING_DIR))
         if f.lower().endswith(('.mp4', '.mov', '.avi', '.mkv', '.webm'))
-        and f not in posted_videos
+        and f not in posted
     ]
 
-    if not pending_videos:
-        print("⚠️ Nenhum novo vídeo para mover.")
+    if not pending:
+        print("⚠️ Nenhum novo vídeo para mover (todos já postados).")
         return
 
-    first_video = pending_videos[0]
-    src = os.path.join(PENDING_DIR, first_video)
-    dst = os.path.join(POSTED_DIR, first_video)
+    video = pending[0]
+    src = os.path.join(PENDING_DIR, video)
+    dst = os.path.join(POSTED_DIR, video)
 
-    try:
-        # Move o arquivo
-        shutil.move(src, dst)
+    shutil.move(src, dst)
 
-        # Confirma se realmente saiu da pasta original
-        if os.path.exists(src):
-            os.remove(src)
+    # Atualiza histórico e salva
+    posted.add(video)
+    state["posted_videos"] = sorted(list(posted))
+    save_state(state)
 
-        # Atualiza histórico
-        posted_videos.add(first_video)
-        state["posted_videos"] = sorted(list(posted_videos))
-
-        with open(STATE_PATH, "w", encoding="utf-8") as f:
-            json.dump(state, f, indent=4, ensure_ascii=False)
-
-        print(f"✅ Vídeo movido com sucesso: {first_video}")
-    except Exception as e:
-        print(f"❌ Erro ao mover vídeo '{first_video}': {e}")
+    print(f"✅ Vídeo movido com sucesso: {video}")
 
 if __name__ == "__main__":
-    move_first_video()
+    move_first_unposted_video()
