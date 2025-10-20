@@ -5,55 +5,69 @@ import json
 PENDING_DIR = "videos/pending"
 POSTED_DIR = "videos/posted"
 STATE_PATH = "data/state.json"
+METADATA_PATH = "metadata.json"
 
-def load_state():
-    """Carrega o arquivo de estado (vídeos já movidos)."""
-    if not os.path.exists(STATE_PATH):
-        return {"posted_videos": []}
+def load_json(path, default=None):
+    """Carrega JSON com fallback seguro."""
+    if not os.path.exists(path):
+        return default or {}
     try:
-        with open(STATE_PATH, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
-        return {"posted_videos": []}
+        return default or {}
 
-def save_state(state):
-    """Salva o estado atualizado."""
-    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=4, ensure_ascii=False)
+def save_json(path, data):
+    """Salva JSON formatado."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
-def move_next_video():
-    """Move o primeiro vídeo (ordem alfabética) ainda não postado."""
+def move_unlisted_videos():
+    """Move todos os vídeos que NÃO estão listados em metadata.json."""
     os.makedirs(PENDING_DIR, exist_ok=True)
     os.makedirs(POSTED_DIR, exist_ok=True)
 
-    state = load_state()
-    posted = set(state.get("posted_videos", []))
+    # Carrega metadados e estado
+    metadata = load_json(METADATA_PATH, {})
+    state = load_json(STATE_PATH, {"moved_videos": []})
 
-    # Lista e ordena os vídeos por nome (ordem alfabética)
+    # Obtém nomes de vídeos já em metadata.json
+    listed_videos = set()
+    if "videos" in metadata and isinstance(metadata["videos"], list):
+        for item in metadata["videos"]:
+            if isinstance(item, dict) and "filename" in item:
+                listed_videos.add(item["filename"])
+            elif isinstance(item, str):
+                listed_videos.add(item)
+
+    moved = set(state.get("moved_videos", []))
+
+    # Lista todos os vídeos pendentes
     pending_videos = sorted([
         f for f in os.listdir(PENDING_DIR)
         if f.lower().endswith(('.mp4', '.mov', '.avi', '.mkv', '.webm'))
-        and f not in posted
+        and f not in listed_videos
+        and f not in moved
     ])
 
     if not pending_videos:
-        print("⚠️ Nenhum novo vídeo para mover (todos já postados).")
+        print("⚠️ Nenhum vídeo para mover (todos estão no metadata.json ou já foram movidos).")
         return
 
-    # Pega o primeiro da ordem
-    next_video = pending_videos[0]
-    src_path = os.path.join(PENDING_DIR, next_video)
-    dst_path = os.path.join(POSTED_DIR, next_video)
+    for video in pending_videos:
+        src = os.path.join(PENDING_DIR, video)
+        dst = os.path.join(POSTED_DIR, video)
+        try:
+            shutil.move(src, dst)
+            moved.add(video)
+            print(f"✅ Vídeo movido: {video}")
+        except Exception as e:
+            print(f"❌ Erro ao mover '{video}': {e}")
 
-    try:
-        shutil.move(src_path, dst_path)
-        posted.add(next_video)
-        state["posted_videos"] = sorted(list(posted))
-        save_state(state)
-        print(f"✅ Vídeo movido (ordem alfabética): {next_video}")
-    except Exception as e:
-        print(f"❌ Erro ao mover '{next_video}': {e}")
+    # Atualiza o estado
+    state["moved_videos"] = sorted(list(moved))
+    save_json(STATE_PATH, state)
 
 if __name__ == "__main__":
-    move_next_video()
+    move_unlisted_videos()
