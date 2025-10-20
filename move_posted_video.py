@@ -1,52 +1,59 @@
 import os
-import json
 import shutil
+import json
 
 PENDING_DIR = "videos/pending"
 POSTED_DIR = "videos/posted"
-DATA_DIR = "data"
+STATE_PATH = "data/state.json"
 
-METADATA_FILE = "metadata.json"
-STATE_FILE = os.path.join(DATA_DIR, "state.json")
-
-def load_json(path):
-    if not os.path.exists(path):
-        return {}
+def load_state():
+    """Carrega o arquivo de estado (vídeos já movidos)."""
+    if not os.path.exists(STATE_PATH):
+        return {"posted_videos": []}
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(STATE_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
-        return {}
+        return {"posted_videos": []}
 
-def move_video_in_same_order():
+def save_state(state):
+    """Salva o estado atualizado."""
+    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
+    with open(STATE_PATH, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=4, ensure_ascii=False)
+
+def move_next_video():
+    """Move o primeiro vídeo (ordem alfabética) ainda não postado."""
     os.makedirs(PENDING_DIR, exist_ok=True)
     os.makedirs(POSTED_DIR, exist_ok=True)
-    os.makedirs(DATA_DIR, exist_ok=True)
 
-    metadata = load_json(METADATA_FILE)
-    all_files = sorted([f for f in os.listdir(PENDING_DIR) if f.endswith(".mp4")])
-    files = [f for f in all_files if f not in metadata]
+    state = load_state()
+    posted = set(state.get("posted_videos", []))
 
-    if not files:
-        print("⚠️ Nenhum vídeo novo encontrado para mover.")
+    # Lista e ordena os vídeos por nome (ordem alfabética)
+    pending_videos = sorted([
+        f for f in os.listdir(PENDING_DIR)
+        if f.lower().endswith(('.mp4', '.mov', '.avi', '.mkv', '.webm'))
+        and f not in posted
+    ])
+
+    if not pending_videos:
+        print("⚠️ Nenhum novo vídeo para mover (todos já postados).")
         return
 
-    # mesmo vídeo que o upload_instagram usaria
-    video_file = files[0]
-    src = os.path.join(PENDING_DIR, video_file)
-    dst = os.path.join(POSTED_DIR, video_file)
+    # Pega o primeiro da ordem
+    next_video = pending_videos[0]
+    src_path = os.path.join(PENDING_DIR, next_video)
+    dst_path = os.path.join(POSTED_DIR, next_video)
 
     try:
-        shutil.move(src, dst)
-        print(f"✅ Vídeo movido com sucesso: {video_file}")
-
-        # Atualiza o state.json com o último movido
-        state = load_json(STATE_FILE)
-        state["ultimo_video_movido"] = video_file
-        with open(STATE_FILE, "w", encoding="utf-8") as f:
-            json.dump(state, f, indent=2, ensure_ascii=False)
+        shutil.move(src_path, dst_path)
+        posted.add(next_video)
+        state["posted_videos"] = sorted(list(posted))
+        save_state(state)
+        print(f"✅ Vídeo movido (ordem alfabética): {next_video}")
     except Exception as e:
-        print(f"❌ Erro ao mover vídeo '{video_file}': {e}")
+        print(f"❌ Erro ao mover '{next_video}': {e}")
 
 if __name__ == "__main__":
-    move_video_in_same_order()
+    move_next_video()
