@@ -22,11 +22,10 @@ jobs:
           mkdir -p data
           echo "✅ Pastas de vídeos verificadas/criadas."
 
-      - name: Install ngrok
-        run: |
-          curl -s https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz | tar xz
-          sudo mv ngrok /usr/local/bin
-          ngrok version
+#      - name: Install ngrok
+#        run: |
+#          sudo mv ngrok /usr/local/bin
+#          ngrok version
 
       - name: Log Current Time
         run: |
@@ -35,8 +34,8 @@ jobs:
           echo "🕐 Horário UTC (para referência):"
           date -u
 
-      - name: Authenticate ngrok
-        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
+#      - name: Authenticate ngrok
+#        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
