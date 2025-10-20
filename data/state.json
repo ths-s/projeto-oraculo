@@ -1,12 +1,15 @@
 {
-  "ultimo_gancho": "gancho3",
-  "ultimo_post": "2025-10-19T16:54:38.684214",
-  "pesos_ganchos": {
-    "gancho3": 0.5,
-    "gancho2": 0.5
-  },
-  "proximo_gancho": "gancho3",
-  "proximo_horario": 2,
-  "ultimo_gancho_postado": "gancho3",
-  "ultimo_video_postado": "202510151716 (1).mp4"
+    "ultimo_gancho": "gancho3",
+    "ultimo_post": "2025-10-19T16:54:38.684214",
+    "pesos_ganchos": {
+        "gancho3": 0.5,
+        "gancho2": 0.5
+    },
+    "proximo_gancho": "gancho3",
+    "proximo_horario": 2,
+    "ultimo_gancho_postado": "gancho3",
+    "ultimo_video_postado": "202510151716 (1).mp4",
+    "posted_videos": [
+        "202510151716 (1).mp4"
+    ]
 }
