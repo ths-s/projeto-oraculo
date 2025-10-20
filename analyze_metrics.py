@@ -23,7 +23,7 @@ GRAPH_PATH = os.path.join(DATA_DIR, f"grafico_ganchos - {timestamp()}.png")
 # ========================================
 def latest_metrics_file():
     """Pega o arquivo de métricas mais recente dentro da pasta data/"""
-    files = [f for f in os.listdir(DATA_DIR) if f.startswith("metrics -") and f.endswith(".json")]
+    files = [f for f in os.listdir(DATA_DIR) if f.startswith("metrics") and f.endswith(".json")]
     if not files:
         raise FileNotFoundError("Nenhum arquivo de métricas encontrado em /data.")
     files.sort(reverse=True)
