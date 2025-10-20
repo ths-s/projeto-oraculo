@@ -55,14 +55,14 @@ jobs:
           YOUTUBE_OAUTH_JSON: ${{ secrets.YOUTUBE_OAUTH_JSON }}
           YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
           TOKEN_PICKLE_COMPLETE: ${{ secrets.TOKEN_PICKLE_COMPLETE }}
-         GRAPH_API_TOKEN: ${{ secrets.GRAPH_API_TOKEN }}
+          GRAPH_API_TOKEN: ${{ secrets.GRAPH_API_TOKEN }}
         run: python3 collect_metrics.py
 
       # 2️⃣ Analisar métricas e gerar próximo gancho/horário
-      - name: Analyze and Schedule Next Post
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python3 analyze_metrics.py
+#      - name: Analyze and Schedule Next Post
+#        env:
+#          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+#        run: python3 analyze_metrics.py
 
       # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
 #      - name: Upload Video to YouTube
