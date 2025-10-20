@@ -10,7 +10,7 @@ DATA_DIR = "data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
 METRICS_PATH = "data/metrics.json"
-GANCHOS_PATH = "data/gancho_ranking.json"
+GANCHOS_PATH = "gancho_data.json"
 OUTPUT_PATH = os.path.join(DATA_DIR, "analise_gancho.json")
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
