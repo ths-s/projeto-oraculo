@@ -72,6 +72,18 @@ jobs:
           git push
 
 
+      - name: Atualizar cron dos workflows
+        run: python3 update_cron.py
+
+      - name: Commitar mudanças nos YAML
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/*.yml
+          git commit -m "🕒 Atualiza horários automáticos de postagem" || echo "Nenhuma alteração"
+          git push
+
+
       # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
 #      - name: Upload Video to YouTube
 #        env:

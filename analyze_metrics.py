@@ -167,5 +167,15 @@ def main():
     print("✅ Análise concluída!")
     print(json.dumps(resumo, ensure_ascii=False, indent=2))
 
+    # Salvar também o horário em um arquivo separado para facilitar automação
+    HORARIO_PATH = os.path.join(DATA_DIR, "melhor_horario.txt")
+
+    with open(HORARIO_PATH, "w", encoding="utf-8") as f:
+        f.write(data["melhor_horario_postagem"])
+
+    print("🕒 Melhor horário salvo em:", HORARIO_PATH)
+
+
 if __name__ == "__main__":
     main()
+    
