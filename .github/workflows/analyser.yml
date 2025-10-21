@@ -56,13 +56,13 @@ jobs:
           YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
           TOKEN_PICKLE_COMPLETE: ${{ secrets.TOKEN_PICKLE_COMPLETE }}
           GRAPH_API_TOKEN: ${{ secrets.GRAPH_API_TOKEN }}
-          NEW_OPEN_AI_KEY: ${{ secrets.NEW_OPEN_AI_KEY }}
         run: python3 collect_metrics.py
 
       # 2️⃣ Analisar métricas e gerar próximo gancho/horário
       - name: Analyze Metrics
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NEW_OPEN_AI_KEY: ${{ secrets.NEW_OPEN_AI_KEY }}
         run: python3 analyze_metrics.py
 
       # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
