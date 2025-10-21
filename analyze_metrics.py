@@ -3,6 +3,7 @@
 import os
 import json
 import random
+import subprocess
 from datetime import datetime
 from statistics import mean
 from collections import defaultdict, Counter
@@ -13,8 +14,13 @@ from collections import defaultdict, Counter
 DATA_DIR = "data"
 METRICS_PATH = os.path.join(DATA_DIR, "metrics.json")
 GANCHOS_PATH = "gancho_data.json"
-RECOMENDACOES_PATH = os.path.join(DATA_DIR, "recomendacoes.json")
-RESUMO_PATH = os.path.join(DATA_DIR, "analise_gancho.json")
+
+def timestamp():
+    return datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+
+# Agora o nome do arquivo contém a data e hora da geração
+RECOMENDACOES_PATH = os.path.join(DATA_DIR, f"recomendacoes - {timestamp()}.json")
+RESUMO_PATH = os.path.join(DATA_DIR, f"analise_gancho - {timestamp()}.json")
 HORARIO_PATH = os.path.join(DATA_DIR, "melhor_horario.txt")
 
 # ======================
@@ -135,7 +141,6 @@ def escolher_ganchos(recomendacoes, ganchos_data):
     yt_gancho = random.choice(ganchos_disponiveis)
     ig_gancho = random.choice(ganchos_disponiveis)
 
-    # Escolher horário mais forte entre as duas plataformas
     horarios = (
         recomendacoes.get("youtube", {}).get("melhores_horarios", [])
         + recomendacoes.get("instagram", {}).get("melhores_horarios", [])
@@ -161,18 +166,18 @@ def main():
 
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    # Salvar JSONs
     with open(RECOMENDACOES_PATH, "w", encoding="utf-8") as f:
         json.dump(recomendacoes, f, ensure_ascii=False, indent=2)
     with open(RESUMO_PATH, "w", encoding="utf-8") as f:
         json.dump(resumo, f, ensure_ascii=False, indent=2)
-
-    # Novo: salvar melhor horário em TXT para update_cron.py
     with open(HORARIO_PATH, "w", encoding="utf-8") as f:
         f.write(resumo["melhor_horario_postagem"])
 
     print("✅ Análise concluída!")
     print(json.dumps(resumo, ensure_ascii=False, indent=2))
+
+    # ✅ Chamar update_cron.py e passar o horário
+    subprocess.run(["python3", "update_cron.py", resumo["melhor_horario_postagem"]], check=False)
 
 if __name__ == "__main__":
     main()
