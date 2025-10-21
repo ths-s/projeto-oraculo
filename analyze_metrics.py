@@ -15,6 +15,7 @@ METRICS_PATH = os.path.join(DATA_DIR, "metrics.json")
 GANCHOS_PATH = "gancho_data.json"
 RECOMENDACOES_PATH = os.path.join(DATA_DIR, "recomendacoes.json")
 RESUMO_PATH = os.path.join(DATA_DIR, "analise_gancho.json")
+HORARIO_PATH = os.path.join(DATA_DIR, "melhor_horario.txt")
 
 # ======================
 # 🔧 Utilitários
@@ -159,10 +160,16 @@ def main():
     resumo = escolher_ganchos(recomendacoes, ganchos_data)
 
     os.makedirs(DATA_DIR, exist_ok=True)
+
+    # Salvar JSONs
     with open(RECOMENDACOES_PATH, "w", encoding="utf-8") as f:
         json.dump(recomendacoes, f, ensure_ascii=False, indent=2)
     with open(RESUMO_PATH, "w", encoding="utf-8") as f:
         json.dump(resumo, f, ensure_ascii=False, indent=2)
+
+    # Novo: salvar melhor horário em TXT para update_cron.py
+    with open(HORARIO_PATH, "w", encoding="utf-8") as f:
+        f.write(resumo["melhor_horario_postagem"])
 
     print("✅ Análise concluída!")
     print(json.dumps(resumo, ensure_ascii=False, indent=2))
