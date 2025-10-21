@@ -59,7 +59,7 @@ jobs:
         run: python3 collect_metrics.py
 
       # 2️⃣ Analisar métricas e gerar próximo gancho/horário
-      - name: Analyze and Schedule Next Post
+      - name: Analyze Metrics
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}

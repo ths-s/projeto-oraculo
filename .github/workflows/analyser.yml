@@ -1,0 +1,95 @@
+name: ORACULO
+
+on:
+  schedule:
+    - cron: "0 */12 * * *" # executa a cada 12h
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  upload_and_optimize:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure folders exist
+        run: |
+          mkdir -p videos/pending
+          mkdir -p videos/posted
+          mkdir -p data
+          echo "✅ Pastas de vídeos verificadas/criadas."
+
+#      - name: Install ngrok
+#        run: |
+#          sudo mv ngrok /usr/local/bin
+#          ngrok version
+
+      - name: Log Current Time
+        run: |
+          echo "🕐 Horário atual do servidor:"
+          date
+          echo "🕐 Horário UTC (para referência):"
+          date -u
+
+#      - name: Authenticate ngrok
+#        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib requests openai matplotlib
+
+      # 1️⃣ Coletar métricas
+      - name: Collect Metrics
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          YOUTUBE_OAUTH_JSON: ${{ secrets.YOUTUBE_OAUTH_JSON }}
+          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
+          TOKEN_PICKLE_COMPLETE: ${{ secrets.TOKEN_PICKLE_COMPLETE }}
+          GRAPH_API_TOKEN: ${{ secrets.GRAPH_API_TOKEN }}
+        run: python3 collect_metrics.py
+
+      # 2️⃣ Analisar métricas e gerar próximo gancho/horário
+      - name: Analyze Metrics
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python3 analyze_metrics.py
+
+      # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
+#      - name: Upload Video to YouTube
+#        env:
+#          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+#          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
+#        run: python3 upload_youtube.py
+          
+     #4️⃣ Upload Instagram
+#      - name: Upload to Instagram
+#        env:
+#          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+#          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+#        run: python3 upload_instagram.py
+
+      # 4️⃣.5️⃣ Mover vídeo postado
+#      - name: Move Posted Video
+#        run: python3 move_posted_video.py
+
+
+      # 5️⃣ Commit e push automáticos dos resultados
+      - name: Commit Updated Metrics and State
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add data/metrics.json data/analise_ganchos.json data/state.json || true
+          git add videos/posted || true
+          git reset token.pickle client_secret.json || true
+          git commit -m "📊 Atualiza métricas, análises e vídeos postados" || true
+          git push || true
