@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  workflows: write
+  contents: write
 
 jobs:
   upload_and_optimize:
