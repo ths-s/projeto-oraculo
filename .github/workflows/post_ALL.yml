@@ -62,6 +62,7 @@ jobs:
       - name: Analyze and Schedule Next Post
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: python3 analyze_metrics.py
 
       # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido

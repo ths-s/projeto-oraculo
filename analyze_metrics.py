@@ -13,7 +13,11 @@ METRICS_PATH = "data/metrics.json"
 GANCHOS_PATH = "gancho_data.json"
 OUTPUT_PATH = os.path.join(DATA_DIR, "analise_gancho.json")
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# 🧠 Configurar cliente DeepSeek
+client = OpenAI(
+    base_url="https://api.deepseek.com/v1",
+    api_key=os.getenv("DEEPSEEK_API_KEY"),
+)
 
 # ======================
 # 📖 Ler dados
@@ -49,12 +53,14 @@ Regras:
 """
 
 # ======================
-# 🤖 Chamada à API
+# 🤖 Chamada à API DeepSeek
 # ======================
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[{"role": "system", "content": "Você é um assistente especialista em análise de performance digital."},
-              {"role": "user", "content": prompt}],
+    model="deepseek-chat",
+    messages=[
+        {"role": "system", "content": "Você é um assistente especialista em análise de performance digital."},
+        {"role": "user", "content": prompt},
+    ],
     temperature=0.4,
 )
 
