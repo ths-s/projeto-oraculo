@@ -2,19 +2,28 @@
 # analyze_metrics.py
 import os
 import json
+import random
 from datetime import datetime
 from statistics import mean
 from collections import defaultdict, Counter
 
+# ======================
+# 📂 Caminhos
+# ======================
 DATA_DIR = "data"
 METRICS_PATH = os.path.join(DATA_DIR, "metrics.json")
-OUTPUT_PATH = os.path.join(DATA_DIR, "recomendacoes.json")
-TXT_PATH = os.path.join(DATA_DIR, "recomendacoes.txt")
+GANCHOS_PATH = "gancho_data.json"
+RECOMENDACOES_PATH = os.path.join(DATA_DIR, "recomendacoes.json")
+RESUMO_PATH = os.path.join(DATA_DIR, "analise_gancho.json")
 
-def load_metrics():
-    if not os.path.exists(METRICS_PATH):
-        raise FileNotFoundError(f"Arquivo não encontrado: {METRICS_PATH}")
-    with open(METRICS_PATH, "r", encoding="utf-8") as f:
+# ======================
+# 🔧 Utilitários
+# ======================
+def load_json(path):
+    if not os.path.exists(path):
+        print(f"⚠️ Arquivo não encontrado: {path}")
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 def extrair_hora(timestamp):
@@ -32,6 +41,9 @@ def normalizar(valores):
         return [1.0 for _ in valores]
     return [(v - min_v) / (max_v - min_v) for v in valores]
 
+# ======================
+# 📊 Análises
+# ======================
 def calcular_scores_youtube(videos):
     horas = defaultdict(list)
     titulos = []
@@ -87,54 +99,73 @@ def analisar_ganchos(textos):
     melhores = [p for p, _ in palavras.most_common(10)]
     return melhores
 
+# ======================
+# 🧠 Geração das recomendações
+# ======================
 def gerar_recomendacoes(metrics):
     recomendacoes = {}
-    print("📊 Iniciando análise local...")
+    print("📊 Iniciando análise...")
 
-    # YouTube
     yt_videos = metrics.get("youtube", {}).get("videos", [])
-    yt_horas, yt_titulos = calcular_scores_youtube(yt_videos)
-    yt_melhores_horarios = melhores_horarios(yt_horas)
-    yt_ganchos = analisar_ganchos(yt_titulos)
-
-    # Instagram
     ig_posts = metrics.get("instagram", {}).get("posts", [])
+
+    yt_horas, yt_titulos = calcular_scores_youtube(yt_videos)
     ig_horas, ig_captions = calcular_scores_instagram(ig_posts)
-    ig_melhores_horarios = melhores_horarios(ig_horas)
-    ig_ganchos = analisar_ganchos(ig_captions)
 
     recomendacoes["youtube"] = {
-        "melhores_horarios": yt_melhores_horarios,
-        "melhores_ganchos": yt_ganchos[:5],
-        "ganchos_para_testar": yt_ganchos[5:]
+        "melhores_horarios": melhores_horarios(yt_horas),
+        "melhores_ganchos": analisar_ganchos(yt_titulos)
     }
-
     recomendacoes["instagram"] = {
-        "melhores_horarios": ig_melhores_horarios,
-        "melhores_ganchos": ig_ganchos[:5],
-        "ganchos_para_testar": ig_ganchos[5:]
+        "melhores_horarios": melhores_horarios(ig_horas),
+        "melhores_ganchos": analisar_ganchos(ig_captions)
     }
 
     return recomendacoes
 
-def salvar_recomendacoes(recomendacoes):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        json.dump(recomendacoes, f, indent=4, ensure_ascii=False)
-    
-    with open(TXT_PATH, "w", encoding="utf-8") as f:
-        f.write("📅 RECOMENDAÇÕES DE POSTAGEM\n\n")
-        for plataforma, dados in recomendacoes.items():
-            f.write(f"=== {plataforma.upper()} ===\n")
-            f.write(f"Melhores horários (2x/dia, 12h+): {', '.join(map(str, dados['melhores_horarios']))}h\n")
-            f.write(f"Melhores ganchos:\n- " + "\n- ".join(dados["melhores_ganchos"]) + "\n")
-            f.write(f"Ganchos para testar:\n- " + "\n- ".join(dados["ganchos_para_testar"]) + "\n\n")
-    print(f"✅ Recomendação salva em {OUTPUT_PATH} e {TXT_PATH}")
+# ======================
+# 🎯 Escolher ganchos reais
+# ======================
+def escolher_ganchos(recomendacoes, ganchos_data):
+    ganchos_disponiveis = list(ganchos_data.keys())
+    if not ganchos_disponiveis:
+        raise ValueError("Nenhum gancho encontrado em gancho_data.json")
 
+    yt_gancho = random.choice(ganchos_disponiveis)
+    ig_gancho = random.choice(ganchos_disponiveis)
+
+    # Escolher horário mais forte entre as duas plataformas
+    horarios = (
+        recomendacoes.get("youtube", {}).get("melhores_horarios", [])
+        + recomendacoes.get("instagram", {}).get("melhores_horarios", [])
+    )
+    melhor_horario = max(horarios) if horarios else random.choice([11, 14, 17, 19, 21])
+
+    return {
+        "gancho_youtube": ganchos_data[yt_gancho],
+        "gancho_instagram": ganchos_data[ig_gancho],
+        "melhor_horario_postagem": f"{melhor_horario:02d}:00",
+        "data_geracao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+# ======================
+# 💾 Execução e salvamento
+# ======================
 def main():
-    metrics = load_metrics()
+    metrics = load_json(METRICS_PATH)
+    ganchos_data = load_json(GANCHOS_PATH)
+
     recomendacoes = gerar_recomendacoes(metrics)
-    salvar_recomendacoes(recomendacoes)
+    resumo = escolher_ganchos(recomendacoes, ganchos_data)
+
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(RECOMENDACOES_PATH, "w", encoding="utf-8") as f:
+        json.dump(recomendacoes, f, ensure_ascii=False, indent=2)
+    with open(RESUMO_PATH, "w", encoding="utf-8") as f:
+        json.dump(resumo, f, ensure_ascii=False, indent=2)
+
+    print("✅ Análise concluída!")
+    print(json.dumps(resumo, ensure_ascii=False, indent=2))
 
 if __name__ == "__main__":
     main()
