@@ -76,12 +76,14 @@ jobs:
         run: python3 update_cron.py
 
       - name: Commitar mudanças nos YAML
+        env:
+          GIT_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "ORACULO-BOT"
+          git config --global user.email "actions@github.com"
           git add .github/workflows/*.yml
           git commit -m "🕒 Atualiza horários automáticos de postagem" || echo "Nenhuma alteração"
-          git push
+          git push https://x-access-token:${GIT_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
 
       - name: Commitar mudanças nos YAML
         env:
