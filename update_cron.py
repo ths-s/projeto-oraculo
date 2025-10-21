@@ -1,55 +1,65 @@
 #!/usr/bin/env python3
-import re
+# update_cron.py
+import sys
 import os
-import datetime
+import re
 
-DATA_DIR = "data"
-HORARIO_PATH = os.path.join(DATA_DIR, "melhor_horario.txt")
-
-# Caminhos dos workflows
-WORKFLOWS = {
-    "YouTube": ".github/workflows/upload_youtube.yml",
-    "Instagram": ".github/workflows/upload_instagram.yml"
+# ======================
+# 📂 Caminhos
+# ======================
+WORKFLOW_DIR = ".github/workflows"
+FILES = {
+    "youtube": os.path.join(WORKFLOW_DIR, "post_Y.yml"),
+    "instagram": os.path.join(WORKFLOW_DIR, "post_I.yml"),
 }
+HORARIO_PATH = "data/melhor_horario.txt"
 
+# ======================
+# 🕒 Utilitários
+# ======================
 def load_horario():
+    if len(sys.argv) > 1:
+        return sys.argv[1]
     if not os.path.exists(HORARIO_PATH):
         raise FileNotFoundError(f"Arquivo não encontrado: {HORARIO_PATH}")
     with open(HORARIO_PATH, "r", encoding="utf-8") as f:
         return f.read().strip()
 
-def horario_para_cron(horario):
-    """Converte '20:00' para formato cron: '0 23 * * *' (ajustando fuso UTC)"""
-    hora, minuto = map(int, horario.split(":"))
+def atualizar_cron(path, horario):
+    if not os.path.exists(path):
+        print(f"⚠️ Arquivo não encontrado: {path} — criando novo.")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        open(path, "w").close()
 
-    # GitHub Actions usa UTC, então ajustar (ex: Brasil = UTC-3)
-    hora_utc = (hora + 3) % 24
-    return f"{minuto} {hora_utc} * * *"
-
-def atualizar_cron(path, cron_novo):
     with open(path, "r", encoding="utf-8") as f:
         conteudo = f.read()
 
-    conteudo_novo = re.sub(
-        r"cron:\s*['\"]?([^\n'\"]+)['\"]?",
-        f"cron: '{cron_novo}'",
-        conteudo
+    # Substitui a linha do cron
+    novo_conteudo, n = re.subn(
+        r'cron:\s*"[^"]+"',
+        f'cron: "0 {int(horario.split(":")[0])} * * *"',
+        conteudo,
     )
 
-    if conteudo != conteudo_novo:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(conteudo_novo)
-        print(f"✅ Atualizado cron em {path} → {cron_novo}")
-    else:
-        print(f"ℹ️ Nenhuma alteração necessária em {path}")
+    if n == 0:
+        # Se não existia linha de cron, adiciona
+        novo_conteudo += f'\n  schedule:\n    - cron: "0 {int(horario.split(":")[0])} * * *"\n'
 
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(novo_conteudo)
+    print(f"🕒 Atualizado: {path} → {horario}")
+
+# ======================
+# 🚀 Execução
+# ======================
 def main():
     print("🕒 Atualizando horários de postagem...")
     horario = load_horario()
-    cron = horario_para_cron(horario)
-    for nome, path in WORKFLOWS.items():
-        atualizar_cron(path, cron)
-    print("✅ Atualização concluída!")
+
+    for nome, path in FILES.items():
+        atualizar_cron(path, horario)
+
+    print("✅ Horários atualizados com sucesso!")
 
 if __name__ == "__main__":
     main()
