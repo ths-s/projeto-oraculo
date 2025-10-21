@@ -65,6 +65,13 @@ jobs:
           NEW_OPEN_AI_KEY: ${{ secrets.NEW_OPEN_AI_KEY }}
         run: python3 analyze_metrics.py
 
+      - name: Commit recomendações
+        run: |
+          git add data/recomendacoes.json
+          git commit -m "Atualiza recomendações automáticas" || echo "Nada a commitar"
+          git push
+
+
       # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
 #      - name: Upload Video to YouTube
 #        env:
