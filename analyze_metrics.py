@@ -17,7 +17,7 @@ METRICS_PATH = os.path.join(DATA_DIR, "metrics.json")
 OUTPUT_PATH = os.path.join(DATA_DIR, "recomendacoes.json")
 TXT_PATH = os.path.join(DATA_DIR, "recomendacoes.txt")
 
-client = OpenAI(api_key=os.getenv("NEW_OPEN_AI_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ======================
 # 🔍 Funções utilitárias
