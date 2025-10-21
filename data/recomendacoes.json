@@ -1,0 +1,27 @@
+{
+    "youtube": {
+        "melhores_horarios": [
+            4,
+            20
+        ],
+        "melhores_ganchos": [
+            "reflexão",
+            "homem",
+            "aranha",
+            "sobre",
+            "imposto"
+        ],
+        "ganchos_para_testar": [
+            "pessoas",
+            "destras",
+            "canhostas",
+            "meme",
+            "quem"
+        ]
+    },
+    "instagram": {
+        "melhores_horarios": [],
+        "melhores_ganchos": [],
+        "ganchos_para_testar": []
+    }
+}
