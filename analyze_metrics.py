@@ -149,33 +149,35 @@ def escolher_ganchos(recomendacoes, ganchos_data):
     }
 
 # ======================
-# 💾 Execução e salvamento
+# 💾 Salvar resultado
 # ======================
-def main():
-    metrics = load_json(METRICS_PATH)
-    ganchos_data = load_json(GANCHOS_PATH)
+resultado = response.choices[0].message.content
 
-    recomendacoes = gerar_recomendacoes(metrics)
-    resumo = escolher_ganchos(recomendacoes, ganchos_data)
+try:
+    data = json.loads(resultado)
+except json.JSONDecodeError:
+    print("⚠️ Resposta não estava em JSON puro. Salvando como texto bruto.")
+    data = {"raw_output": resultado}
 
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(RECOMENDACOES_PATH, "w", encoding="utf-8") as f:
-        json.dump(recomendacoes, f, ensure_ascii=False, indent=2)
-    with open(RESUMO_PATH, "w", encoding="utf-8") as f:
-        json.dump(resumo, f, ensure_ascii=False, indent=2)
+# Caminhos de saída
+OUTPUT_PATH = os.path.join(DATA_DIR, "analise_gancho.json")
+HORARIO_PATH = os.path.join(DATA_DIR, "melhor_horario.txt")
 
-    print("✅ Análise concluída!")
-    print(json.dumps(resumo, ensure_ascii=False, indent=2))
+# Salva análise completa
+with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
 
-    # Salvar também o horário em um arquivo separado para facilitar automação
-    HORARIO_PATH = os.path.join(DATA_DIR, "melhor_horario.txt")
+print("✅ Análise concluída e salva em:", OUTPUT_PATH)
 
+# Se houver o campo de horário, salva também separadamente
+if "melhor_horario_postagem" in data:
     with open(HORARIO_PATH, "w", encoding="utf-8") as f:
         f.write(data["melhor_horario_postagem"])
-
     print("🕒 Melhor horário salvo em:", HORARIO_PATH)
+else:
+    print("⚠️ Campo 'melhor_horario_postagem' não encontrado no resultado.")
+
 
 
 if __name__ == "__main__":
     main()
-    
