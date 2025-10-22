@@ -7,15 +7,16 @@ on:
 
 permissions:
   contents: write
+  
 
 jobs:
   upload_and_optimize:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    with:
-      token: ${{ secrets.PERSONAL_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PERSONAL_TOKEN }}
 
 
       - name: Ensure folders exist
