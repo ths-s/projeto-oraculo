@@ -2,7 +2,7 @@ name: POSTADOR Y
 
 on:
   schedule:
-    - cron: "0 */12 * * *" # executa a cada 12h
+    - cron: "0 20 * * *" # executa a cada 12h
   workflow_dispatch:
 
 permissions:
