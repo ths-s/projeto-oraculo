@@ -1,0 +1,159 @@
+analyzer.yml
+
+contexto: estou criando scripts no github actions para postar vídeos automáticamente e trocar horários e ganchos com base em uma análise sem IA dos dados do yooutube e instagram
+
+(parte 1 do script [analyzer.yml]) objetivo 1: 
+- analisar métricas
+- gerar um arquivo com os resultados (devem conter 2 recomendações de ganchos para a postagem e 2 horários diferentes para as 2 redes sociais diferentes)
+- atualisar o "cron:" dos arquivos: "post_I.yml / post_Y.yml"
+
+(parte 2 do script [post_I.yml | post_Y.yml]) objetivo 2:
+- ser ativado no horário definido pelo analyze_metrics.py
+- usar o arquivo gerado pelo analyze_metrics.py para decidir qual gancho usar e testar
+- postar o vídeo de "videos/pending"
+- mover o vídeo para "videos/posted" (pensar em um método melhor pois agora há dois script yml para postar os vídeos)
+
+
+exemplo parte 1 do script:
+analyzer.yml > collect_metrics.py > analyze_metrics.py > update_cron.py
+
+exemplo do log mais recente:
+Run python3 collect_metrics.py
+  
+[main c5bd3c1] Atualiza métricas do YouTube e Instagram
+ 1 file changed, 272 insertions(+), 272 deletions(-)
+To https://github.com/Ths-S/PROJETO-ORACULO
+   a9a426c..c5bd3c1  main -> main
+📊 Coletando métricas...
+🎥 Coletando métricas do YouTube...
+🔎 Encontrados 35 vídeos no canal.
+✅ Coletadas métricas de 35 vídeos do YouTube.
+📸 Coletando métricas do Instagram...
+✅ Coletados 128 posts do Instagram.
+✅ Métricas salvas em data/metrics.json
+1s
+Run python3 analyze_metrics.py
+  
+Traceback (most recent call last):
+  File "/home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO/update_cron.py", line 46, in <module>
+    main()
+  File "/home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO/update_cron.py", line 38, in main
+    schedule = carregar_schedule()
+  File "/home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO/update_cron.py", line 14, in carregar_schedule
+    raise FileNotFoundError(f"Arquivo não encontrado: {SCHEDULE_PATH}")
+FileNotFoundError: Arquivo não encontrado: data/schedule.json
+Traceback (most recent call last):
+  File "/home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO/update_cron.py", line 46, in <module>
+    main()
+  File "/home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO/update_cron.py", line 38, in main
+    schedule = carregar_schedule()
+  File "/home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO/update_cron.py", line 14, in carregar_schedule
+    raise FileNotFoundError(f"Arquivo não encontrado: {SCHEDULE_PATH}")
+FileNotFoundError: Arquivo não encontrado: data/schedule.json
+📊 Iniciando análise...
+✅ Análise concluída!
+{
+  "gancho_youtube": {
+    "title": "🚨 Ninguém te contou isso ainda…",
+    "description": "Descobri algo que muda tudo — olha o link da bio ou o link fixado nos comentários antes que apaguem.",
+    "tags": [
+      "descubra",
+      "linknabio",
+      "linkfixado",
+      "segredo",
+      "urgente",
+      "confira"
+    ]
+  },
+  "gancho_instagram": {
+    "title": "😳 Eu não devia mostrar isso aqui...",
+    "description": "Se ainda estiver disponível, tá no link da bio ou fixado nos comentários. Corre antes que tirem do ar.",
+    "tags": [
+      "proibido",
+      "descubra",
+      "linknabio",
+      "linkfixado",
+      "exclusivo",
+      "chocante"
+    ]
+  },
+  "melhor_horario_postagem": "20:00",
+  "data_geracao": "2025-10-23 11:25:05"
+}
+📊 Iniciando análise...
+✅ Análise concluída!
+{
+  "gancho_youtube": {
+    "title": "💰 Parece brincadeira, mas é real!",
+    "description": "Só quem clicar no link da bio ou nos comentários vai entender o porquê disso estar viralizando.",
+    "tags": [
+      "dinheiro",
+      "linknabio",
+      "linkfixado",
+      "viral",
+      "descubra",
+      "impacto"
+    ]
+  },
+  "gancho_instagram": {
+    "title": "💡 Eu testei sem esperar nada… e olha no que deu!",
+    "description": "Explico tudo no link da bio ou no link fixado (antes que tirem do ar).",
+    "tags": [
+      "descubra",
+      "linknabio",
+      "linkfixado",
+      "resultado",
+      "exclusivo"
+    ]
+  },
+  "melhor_horario_postagem": "20:00",
+  "data_geracao": "2025-10-23 11:25:05"
+}
+0s
+Run git add data/recomendacoes.json
+On branch main
+Your branch is up to date with 'origin/main'.
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	data/analise_gancho - 2025-10-23 11-25-05.json
+	data/melhor_horario.txt
+	data/recomendacoes - 2025-10-23 11-25-05.json
+nothing added to commit but untracked files present (use "git add" to track)
+Nada a commitar
+Everything up-to-date
+0s
+Run python3 update_cron.py
+Traceback (most recent call last):
+  File "/home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO/update_cron.py", line 46, in <module>
+    main()
+  File "/home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO/update_cron.py", line 38, in main
+    schedule = carregar_schedule()
+  File "/home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO/update_cron.py", line 14, in carregar_schedule
+    raise FileNotFoundError(f"Arquivo não encontrado: {SCHEDULE_PATH}")
+FileNotFoundError: Arquivo não encontrado: data/schedule.json
+Error: Process completed with exit code 1.
+0s
+0s
+0s
+0s
+0s
+Post job cleanup.
+/usr/bin/git version
+git version 2.51.0
+Copying '/home/runner/.gitconfig' to '/home/runner/work/_temp/881073b7-2c72-4a5a-8b07-50f965a9da9a/.gitconfig'
+Temporarily overriding HOME='/home/runner/work/_temp/881073b7-2c72-4a5a-8b07-50f965a9da9a' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+/usr/bin/git config --global --add safe.directory /home/runner/work/PROJETO-ORACULO/PROJETO-ORACULO
+/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+http.https://github.com/.extraheader
+/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+
+
+
+
+
+
+OBJETIVO PRIORITÁRIO: gerar um arquivo de recomendacoes.json e alterar os "cron:" dos yml de acordo com o resultado da análise
