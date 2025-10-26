@@ -18,9 +18,14 @@ GANCHOS_PATH = "gancho_data.json"
 def timestamp():
     return datetime.now().strftime("%Y-%m-%d %H-%M-%S")
 
+<<<<<<< HEAD
+# Arquivos com timestamp
+=======
+>>>>>>> 00ccb670f601e6e0afecb343eefd34215c02eac4
 RECOMENDACOES_PATH = os.path.join(DATA_DIR, f"recomendacoes - {timestamp()}.json")
 RESUMO_PATH = os.path.join(DATA_DIR, f"analise_gancho - {timestamp()}.json")
 HORARIO_PATH = os.path.join(DATA_DIR, "melhor_horario.txt")
+ANALISES_PATH = os.path.join(DATA_DIR, "analises.json")
 
 # ======================
 # 🔧 Utilitários
@@ -144,6 +149,16 @@ def escolher_ganchos(recomendacoes, ganchos_data):
     yt_gancho = random.choice(ganchos_disponiveis)
     ig_gancho = random.choice([g for g in ganchos_disponiveis if g != yt_gancho])
 
+<<<<<<< HEAD
+    horarios = (
+        recomendacoes.get("youtube", {}).get("melhores_horarios", [])
+        + recomendacoes.get("instagram", {}).get("melhores_horarios", [])
+    )
+
+    # Pega até 2 horários (um para cada rede)
+    melhores_horas = sorted(horarios)[:2] if horarios else [19, 21]
+
+=======
     # Escolher horários distintos
     yt_horarios = recomendacoes.get("youtube", {}).get("melhores_horarios", [])
     ig_horarios = recomendacoes.get("instagram", {}).get("melhores_horarios", [])
@@ -151,11 +166,16 @@ def escolher_ganchos(recomendacoes, ganchos_data):
     yt_horario = yt_horarios[0] if yt_horarios else random.choice([11, 14, 17, 19, 21])
     ig_horario = ig_horarios[0] if ig_horarios else random.choice([i for i in [11, 14, 17, 19, 21] if i != yt_horario])
 
+>>>>>>> 00ccb670f601e6e0afecb343eefd34215c02eac4
     return {
         "gancho_youtube": ganchos_data[yt_gancho],
         "gancho_instagram": ganchos_data[ig_gancho],
+<<<<<<< HEAD
+        "melhores_horarios_postagem": [f"{h:02d}:00" for h in melhores_horas],
+=======
         "horario_youtube": f"{yt_horario:02d}:00",
         "horario_instagram": f"{ig_horario:02d}:00",
+>>>>>>> 00ccb670f601e6e0afecb343eefd34215c02eac4
         "data_geracao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
@@ -171,22 +191,51 @@ def main():
 
     os.makedirs(DATA_DIR, exist_ok=True)
 
+    # Salva arquivos individuais
     with open(RECOMENDACOES_PATH, "w", encoding="utf-8") as f:
         json.dump(recomendacoes, f, ensure_ascii=False, indent=2)
     with open(RESUMO_PATH, "w", encoding="utf-8") as f:
         json.dump(resumo, f, ensure_ascii=False, indent=2)
     with open(HORARIO_PATH, "w", encoding="utf-8") as f:
+<<<<<<< HEAD
+        f.write(", ".join(resumo["melhores_horarios_postagem"]))
+=======
         f.write(f"{resumo['horario_youtube']}\n{resumo['horario_instagram']}")
+>>>>>>> 00ccb670f601e6e0afecb343eefd34215c02eac4
 
     print("✅ Análise concluída!")
     print(json.dumps(resumo, ensure_ascii=False, indent=2))
 
+<<<<<<< HEAD
+    # 📦 Atualiza o arquivo acumulado de análises
+    analises = []
+    if os.path.exists(ANALISES_PATH):
+        try:
+            with open(ANALISES_PATH, "r", encoding="utf-8") as f:
+                analises = json.load(f)
+        except Exception:
+            analises = []
+    analises.append(resumo)
+    with open(ANALISES_PATH, "w", encoding="utf-8") as f:
+        json.dump(analises, f, ensure_ascii=False, indent=2)
+=======
     # Chamar update_cron.py com os dois horários
     subprocess.run([
         "python3", "update_cron.py",
         resumo["horario_youtube"],
         resumo["horario_instagram"]
     ], check=False)
+>>>>>>> 00ccb670f601e6e0afecb343eefd34215c02eac4
+
+<<<<<<< HEAD
+    # ✅ Chamar update_cron.py e passar o primeiro horário do dia
+    primeiro_horario = resumo["melhores_horarios_postagem"][0]
+    subprocess.run(["python3", "update_cron.py", primeiro_horario], check=False)
 
 if __name__ == "__main__":
     main()
+
+=======
+if __name__ == "__main__":
+    main()
+>>>>>>> 00ccb670f601e6e0afecb343eefd34215c02eac4
