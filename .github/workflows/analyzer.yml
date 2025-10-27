@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  
+
 
 jobs:
   upload_and_optimize:
