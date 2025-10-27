@@ -1,0 +1,28 @@
+{
+  "gancho_youtube": {
+    "title": "🚨 Ninguém te contou isso ainda…",
+    "description": "Descobri algo que muda tudo — olha o link da bio ou o link fixado nos comentários antes que apaguem.",
+    "tags": [
+      "descubra",
+      "linknabio",
+      "linkfixado",
+      "segredo",
+      "urgente",
+      "confira"
+    ]
+  },
+  "gancho_instagram": {
+    "title": "🔥 Pouca gente sabe disso (mas funciona!)",
+    "description": "Não vou explicar aqui... entra no link da bio ou no link fixado e vê com os próprios olhos.",
+    "tags": [
+      "segredo",
+      "linknabio",
+      "linkfixado",
+      "funciona",
+      "curioso",
+      "novidade"
+    ]
+  },
+  "melhor_horario_postagem": "20:00",
+  "data_geracao": "2025-10-27 11:01:37"
+}
