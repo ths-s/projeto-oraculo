@@ -321,24 +321,49 @@ def main():
 
     os.makedirs(DATA_DIR, exist_ok=True)
 
+    # ======================
+    # 🕓 Nome do log com data e hora
+    # ======================
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"analise_{timestamp}.json"
+    log_path = os.path.join(DATA_DIR, log_filename)
+
+    # ======================
+    # 💾 Salvamento dos resultados
+    # ======================
     with open(RECOMENDACOES_PATH, "w", encoding="utf-8") as f:
         json.dump(recomendacoes, f, ensure_ascii=False, indent=2)
+
     with open(RESUMO_PATH, "w", encoding="utf-8") as f:
         json.dump(resumo, f, ensure_ascii=False, indent=2)
+
     with open(HORARIO_PATH, "w", encoding="utf-8") as f:
         f.write(resumo["melhor_horario_postagem"])
 
-    print("✅ Análise concluída!")
+    # ======================
+    # 🧾 Criação do log consolidado
+    # ======================
+    log_data = {
+        "timestamp": timestamp,
+        "melhor_horario_postagem": resumo.get("melhor_horario_postagem"),
+        "resumo": resumo,
+        "recomendacoes_count": len(recomendacoes) if isinstance(recomendacoes, list) else 1,
+    }
+
+    with open(log_path, "w", encoding="utf-8") as f:
+        json.dump(log_data, f, ensure_ascii=False, indent=2)
+
+    # 🔊 Saída clara para o GitHub Actions capturar
+    print(f"✅ Análise concluída! Arquivo gerado: {log_filename}")
     print(json.dumps(resumo, ensure_ascii=False, indent=2))
 
     # ✅ Chamar update_cron.py e passar o horário
     subprocess.run(["python3", "update_cron.py", resumo["melhor_horario_postagem"]], check=False)
 
-if __name__ == "__main__":
-    main()
 
 # ======================
-# 💾 Execução e salvamento
+# 💾 Execução e salvamento (duplicado)
 # ======================
 def main():
     metrics = load_json(METRICS_PATH)
@@ -349,6 +374,11 @@ def main():
 
     os.makedirs(DATA_DIR, exist_ok=True)
 
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"analise_{timestamp}.json"
+    log_path = os.path.join(DATA_DIR, log_filename)
+
     with open(RECOMENDACOES_PATH, "w", encoding="utf-8") as f:
         json.dump(recomendacoes, f, ensure_ascii=False, indent=2)
     with open(RESUMO_PATH, "w", encoding="utf-8") as f:
@@ -356,11 +386,21 @@ def main():
     with open(HORARIO_PATH, "w", encoding="utf-8") as f:
         f.write(resumo["melhor_horario_postagem"])
 
-    print("✅ Análise concluída!")
+    log_data = {
+        "timestamp": timestamp,
+        "melhor_horario_postagem": resumo.get("melhor_horario_postagem"),
+        "resumo": resumo,
+        "recomendacoes_count": len(recomendacoes) if isinstance(recomendacoes, list) else 1,
+    }
+
+    with open(log_path, "w", encoding="utf-8") as f:
+        json.dump(log_data, f, ensure_ascii=False, indent=2)
+
+    print(f"✅ Análise concluída! Arquivo gerado: {log_filename}")
     print(json.dumps(resumo, ensure_ascii=False, indent=2))
 
-    # ✅ Chamar update_cron.py e passar o horário
     subprocess.run(["python3", "update_cron.py", resumo["melhor_horario_postagem"]], check=False)
+
 
 if __name__ == "__main__":
     main()
