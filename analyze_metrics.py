@@ -316,51 +316,53 @@ def main():
     metrics = load_json(METRICS_PATH)
     ganchos_data = load_json(GANCHOS_PATH)
 
+    # Gera recomendações completas e escolhe os melhores ganchos
     recomendacoes = gerar_recomendacoes(metrics)
     resumo = escolher_ganchos(recomendacoes, ganchos_data)
 
     os.makedirs(DATA_DIR, exist_ok=True)
 
+    # Gera dois horários (exemplo: 20:00 e 12:00)
+    horario_youtube = resumo.get("melhor_horario_postagem", "20:00")
+    horario_instagram = "12:00" if horario_youtube != "12:00" else "20:00"
+
+    # Garante formato de data/hora legível
+    data_geracao = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Monta o dicionário final que será salvo em recomendacoes.json
+    recomendacoes_completas = {
+        "gancho_youtube": resumo.get("gancho_youtube", {}),
+        "gancho_instagram": resumo.get("gancho_instagram", {}),
+        "melhor_horario_youtube": horario_youtube,
+        "melhor_horario_instagram": horario_instagram,
+        "data_geracao": data_geracao
+    }
+
+    # Caminhos para salvar
+    timestamp = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+    RECOMENDACOES_FINAL_PATH = os.path.join(DATA_DIR, f"recomendacoes - {timestamp}.json")
+    RECOMENDACOES_FIXO_PATH = os.path.join(DATA_DIR, "recomendacoes.json")
+
+    # Salva todos os arquivos normalmente
     with open(RECOMENDACOES_PATH, "w", encoding="utf-8") as f:
         json.dump(recomendacoes, f, ensure_ascii=False, indent=2)
     with open(RESUMO_PATH, "w", encoding="utf-8") as f:
         json.dump(resumo, f, ensure_ascii=False, indent=2)
     with open(HORARIO_PATH, "w", encoding="utf-8") as f:
-        f.write(resumo["melhor_horario_postagem"])
+        f.write(horario_youtube)
+
+    # 🔹 Novo: salva recomendacoes.json e a versão com timestamp
+    with open(RECOMENDACOES_FINAL_PATH, "w", encoding="utf-8") as f:
+        json.dump(recomendacoes_completas, f, ensure_ascii=False, indent=2)
+    with open(RECOMENDACOES_FIXO_PATH, "w", encoding="utf-8") as f:
+        json.dump(recomendacoes_completas, f, ensure_ascii=False, indent=2)
 
     print("✅ Análise concluída!")
-    print(json.dumps(resumo, ensure_ascii=False, indent=2))
+    print(json.dumps(recomendacoes_completas, ensure_ascii=False, indent=2))
 
-    # ✅ Chamar update_cron.py e passar o horário
-    subprocess.run(["python3", "update_cron.py", resumo["melhor_horario_postagem"]], check=False)
+    # ✅ Chama update_cron.py e passa os dois horários (YouTube e Instagram)
+    subprocess.run(["python3", "update_cron.py", horario_youtube, horario_instagram], check=False)
 
-if __name__ == "__main__":
-    main()
-
-# ======================
-# 💾 Execução e salvamento
-# ======================
-def main():
-    metrics = load_json(METRICS_PATH)
-    ganchos_data = load_json(GANCHOS_PATH)
-
-    recomendacoes = gerar_recomendacoes(metrics)
-    resumo = escolher_ganchos(recomendacoes, ganchos_data)
-
-    os.makedirs(DATA_DIR, exist_ok=True)
-
-    with open(RECOMENDACOES_PATH, "w", encoding="utf-8") as f:
-        json.dump(recomendacoes, f, ensure_ascii=False, indent=2)
-    with open(RESUMO_PATH, "w", encoding="utf-8") as f:
-        json.dump(resumo, f, ensure_ascii=False, indent=2)
-    with open(HORARIO_PATH, "w", encoding="utf-8") as f:
-        f.write(resumo["melhor_horario_postagem"])
-
-    print("✅ Análise concluída!")
-    print(json.dumps(resumo, ensure_ascii=False, indent=2))
-
-    # ✅ Chamar update_cron.py e passar o horário
-    subprocess.run(["python3", "update_cron.py", resumo["melhor_horario_postagem"]], check=False)
 
 if __name__ == "__main__":
     main()
