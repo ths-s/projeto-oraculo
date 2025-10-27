@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
 
+
 jobs:
   upload_and_optimize:
     runs-on: ubuntu-latest
@@ -17,6 +18,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_TOKEN }}
 
+
       - name: Ensure folders exist
         run: |
           mkdir -p videos/pending
@@ -24,12 +26,20 @@ jobs:
           mkdir -p data
           echo "✅ Pastas de vídeos verificadas/criadas."
 
+#      - name: Install ngrok
+#        run: |
+#          sudo mv ngrok /usr/local/bin
+#          ngrok version
+
       - name: Log Current Time
         run: |
           echo "🕐 Horário atual do servidor:"
           date
           echo "🕐 Horário UTC (para referência):"
           date -u
+
+#      - name: Authenticate ngrok
+#        run: ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -52,46 +62,19 @@ jobs:
           GRAPH_API_TOKEN: ${{ secrets.GRAPH_API_TOKEN }}
         run: python3 collect_metrics.py
 
-      # 2️⃣ Analisar métricas e gerar próximo gancho/horário (salvando JSON do log)
+      # 2️⃣ Analisar métricas e gerar próximo gancho/horário
       - name: Analyze Metrics
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NEW_OPEN_AI_KEY: ${{ secrets.NEW_OPEN_AI_KEY }}
-        run: |
-          echo "📊 Iniciando análise..."
-          TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-
-          OUTPUT=$(python3 analyze_metrics.py 2>&1)
-
-          echo "$OUTPUT" | python3 - <<'EOF'
-import sys, re, json, os, datetime
-
-log = sys.stdin.read()
-json_matches = re.findall(r'\{(?:[^{}]|(?R))*\}', log)
-os.makedirs("data", exist_ok=True)
-
-if json_matches:
-    for i, j in enumerate(json_matches, start=1):
-        try:
-            data = json.loads(j)
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            filename = f"data/log_analyze_{timestamp}_{i}.json"
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            print(f"✅ JSON salvo em {filename}")
-        except json.JSONDecodeError:
-            print(f"❌ JSON inválido ignorado ({i})")
-else:
-    print("⚠️ Nenhum JSON encontrado no log.")
-EOF
-
-          echo "✅ Análise concluída!"
+        run: python3 analyze_metrics.py
 
       - name: Commit recomendações
         run: |
           git add data/recomendacoes.json
           git commit -m "Atualiza recomendações automáticas" || echo "Nada a commitar"
           git push
+
 
       - name: Atualizar cron dos workflows
         run: python3 update_cron.py
@@ -116,6 +99,27 @@ EOF
           git commit -m "🕒 Atualiza horários automáticos de postagem" || echo "Nenhuma alteração"
           git push https://x-access-token:${GIT_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
 
+
+
+      # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
+#      - name: Upload Video to YouTube
+#        env:
+#          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+#          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
+#        run: python3 upload_youtube.py
+          
+     #4️⃣ Upload Instagram
+#      - name: Upload to Instagram
+#        env:
+#          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+#          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+#        run: python3 upload_instagram.py
+
+      # 4️⃣.5️⃣ Mover vídeo postado
+#      - name: Move Posted Video
+#        run: python3 move_posted_video.py
+
+
       # 5️⃣ Commit e push automáticos dos resultados
       - name: Commit Updated Metrics and State
         run: |
@@ -126,3 +130,4 @@ EOF
           git reset token.pickle client_secret.json || true
           git commit -m "📊 Atualiza métricas, análises e vídeos postados" || true
           git push || true
+          
