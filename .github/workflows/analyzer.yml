@@ -6,19 +6,18 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # Permite write no repositório (para push)
+  contents: write
+  
 
 jobs:
   upload_and_optimize:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Reforça no job
 
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PERSONAL_TOKEN }}  # Mantido para checkout com token personalizado
-          fetch-depth: 0  # Histórico completo para diffs
+          token: ${{ secrets.PERSONAL_TOKEN }}
+
 
       - name: Ensure folders exist
         run: |
@@ -72,34 +71,35 @@ jobs:
 
       - name: Commit recomendações
         run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/*  # Captura todos os arquivos com timestamp (recomendacoes*.json, analise_gancho*.json, melhor_horario.txt)
-          if git diff --staged --quiet; then
-            echo "Nada a commitar nas recomendações"
-          else
-            git commit -m "Atualiza recomendações automáticas - $(date -u '+%Y-%m-%d %H:%M UTC')"
-            git push
-          fi
+          git add data/recomendacoes.json
+          git commit -m "Atualiza recomendações automáticas" || echo "Nada a commitar"
+          git push
+
 
       - name: Atualizar cron dos workflows
         run: python3 update_cron.py
-        # Nota: Passe argumentos se necessário, ex: python3 update_cron.py <horario_youtube> <horario_instagram>
-        # Pelo log, adicione env ou args se o erro de ValueError persistir
 
       - name: Commitar mudanças nos YAML
         env:
-          GIT_TOKEN: ${{ secrets.PERSONAL_TOKEN }}  # Necessário para editar workflows (self-edit)
+          GIT_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          git config --global user.name "ORACULO-BOT"
+          git config --global user.email "actions@github.com"
+          git add .github/workflows/*.yml
+          git commit -m "🕒 Atualiza horários automáticos de postagem" || echo "Nenhuma alteração"
+          git push https://x-access-token:${GIT_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
+
+      - name: Commitar mudanças nos YAML
+        env:
+          GIT_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .github/workflows/*.yml
-          if git diff --staged --quiet; then
-            echo "Nenhuma alteração nos YAML"
-          else
-            git commit -m "🕒 Atualiza horários automáticos de postagem - $(date -u '+%Y-%m-%d %H:%M UTC')"
-            git push https://x-access-token:${GIT_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
-          fi
+          git commit -m "🕒 Atualiza horários automáticos de postagem" || echo "Nenhuma alteração"
+          git push https://x-access-token:${GIT_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
+
+
 
       # 3️⃣ Upload dos vídeos — usando o próximo gancho sugerido
 #      - name: Upload Video to YouTube
@@ -108,7 +108,7 @@ jobs:
 #          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
 #        run: python3 upload_youtube.py
           
-      #4️⃣ Upload Instagram
+     #4️⃣ Upload Instagram
 #      - name: Upload to Instagram
 #        env:
 #          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -119,17 +119,15 @@ jobs:
 #      - name: Move Posted Video
 #        run: python3 move_posted_video.py
 
+
       # 5️⃣ Commit e push automáticos dos resultados
       - name: Commit Updated Metrics and State
         run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/*  # Inclui metrics.json, analise_ganchos.json (se existir), state.json e arquivos gerados
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add data/metrics.json data/analise_ganchos.json data/state.json || true
           git add videos/posted || true
-          git reset token.pickle client_secret.json || true  # Exclui arquivos sensíveis
-          if git diff --staged --quiet; then
-            echo "Nada a commitar nos métricos e estado"
-          else
-            git commit -m "📊 Atualiza métricas, análises e vídeos postados - $(date -u '+%Y-%m-%d %H:%M UTC')"
-            git push
-          fi
+          git reset token.pickle client_secret.json || true
+          git commit -m "📊 Atualiza métricas, análises e vídeos postados" || true
+          git push || true
+          
