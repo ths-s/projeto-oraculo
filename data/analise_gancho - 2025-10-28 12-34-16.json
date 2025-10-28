@@ -1,0 +1,27 @@
+{
+  "gancho_youtube": {
+    "title": "⚡ Isso aqui tá sendo removido em vários lugares…",
+    "description": "Se ainda estiver no ar, o link da bio ou fixado te leva direto pra fonte.",
+    "tags": [
+      "proibido",
+      "linknabio",
+      "linkfixado",
+      "exclusivo",
+      "confira",
+      "urgente"
+    ]
+  },
+  "gancho_instagram": {
+    "title": "💡 Eu testei sem esperar nada… e olha no que deu!",
+    "description": "Explico tudo no link da bio ou no link fixado (antes que tirem do ar).",
+    "tags": [
+      "descubra",
+      "linknabio",
+      "linkfixado",
+      "resultado",
+      "exclusivo"
+    ]
+  },
+  "melhor_horario_postagem": "20:00",
+  "data_geracao": "2025-10-28 12:34:16"
+}
