@@ -4,6 +4,12 @@ from datetime import datetime, timedelta
 from collections import Counter
 from openai import OpenAI
 
+
+
+
+os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
+client = OpenAI(api_key=os.getenv("GROQ_API_KEY"))
+
 # Inicializa o cliente OpenAI com a API_KEY do ambiente
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
