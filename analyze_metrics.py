@@ -1,13 +1,22 @@
+import os
 import json
 from datetime import datetime, timedelta
 from collections import Counter
 from openai import OpenAI
 
-client = OpenAI()
+# Inicializa o cliente OpenAI com a API_KEY do ambiente
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if not OPENAI_API_KEY:
+    raise ValueError("❌ ERRO: variável de ambiente OPENAI_API_KEY não encontrada. Configure-a no GitHub Actions Secrets.")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
+
 
 def load_json(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
 
 def extract_best_times(videos_or_posts, views_key="views", likes_key="likes", comments_key="comments", time_key="publishedAt"):
     engagement_data = []
@@ -31,21 +40,33 @@ def extract_best_times(videos_or_posts, views_key="views", likes_key="likes", co
     best_hours = [f"{h:02d}:00" for h, _ in hour_counter.most_common(2)]
     return best_hours
 
+
 def summarize_performance(metadata, ganchos):
     youtube_videos = metadata["youtube"]["videos"]
     insta_posts = metadata["instagram"]["posts"]
 
     best_hours_youtube = extract_best_times(youtube_videos)
-    best_hours_insta = extract_best_times(insta_posts, views_key="likes", likes_key="likes", comments_key="comments", time_key="timestamp")
+    best_hours_insta = extract_best_times(
+        insta_posts,
+        views_key="likes",
+        likes_key="likes",
+        comments_key="comments",
+        time_key="timestamp"
+    )
 
     summary = {
         "melhor_horario_youtube": best_hours_youtube,
         "melhor_horario_instagram": best_hours_insta,
-        "top_titles_youtube": [v["title"] for v in sorted(youtube_videos, key=lambda x: x.get("views", 0), reverse=True)[:3]],
-        "top_captions_instagram": [p["caption"] for p in sorted(insta_posts, key=lambda x: x.get("likes", 0), reverse=True)[:3]],
-        "ganchos_existentes": list(ganchos.keys())
+        "top_titles_youtube": [
+            v["title"] for v in sorted(youtube_videos, key=lambda x: x.get("views", 0), reverse=True)[:3]
+        ],
+        "top_captions_instagram": [
+            p["caption"] for p in sorted(insta_posts, key=lambda x: x.get("likes", 0), reverse=True)[:3]
+        ],
+        "ganchos_existentes": list(ganchos.keys()),
     }
     return summary
+
 
 def gerar_ganchos_com_ia(analise):
     prompt = f"""
@@ -83,20 +104,29 @@ def gerar_ganchos_com_ia(analise):
     Use os melhores horários encontrados no JSON acima.
     """
 
-    response = client.chat.completions.create(
-        model="gpt-5",
-        messages=[
-            {"role": "system", "content": "Você é um criador especialista em virais de YouTube e Instagram."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.8
-    )
-
     try:
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=[
+                {"role": "system", "content": "Você é um criador especialista em virais de YouTube e Instagram."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.8
+        )
+
         content = response.choices[0].message.content
         return json.loads(content)
-    except Exception:
-        return {"erro": "Falha ao interpretar resposta da IA", "raw_output": content}
+
+    except Exception as e:
+        print(f"⚠️ Erro ao gerar ganchos com IA: {e}")
+        return {
+            "erro": str(e),
+            "fallback": {
+                "melhor_horario_youtube": analise.get("melhor_horario_youtube", []),
+                "melhor_horario_instagram": analise.get("melhor_horario_instagram", [])
+            }
+        }
+
 
 def main():
     metadata = load_json("data/metrics.json")
@@ -111,6 +141,7 @@ def main():
         json.dump(resultado, f, indent=2, ensure_ascii=False)
 
     print(json.dumps(resultado, indent=2, ensure_ascii=False))
+
 
 if __name__ == "__main__":
     main()
