@@ -99,7 +99,7 @@ def gerar_ganchos_com_ia(analise):
         return {"erro": "Falha ao interpretar resposta da IA", "raw_output": content}
 
 def main():
-    metadata = load_json("metrics.json")
+    metadata = load_json("data/metrics.json")
     ganchos = load_json("gancho_data.json")
 
     analise = summarize_performance(metadata, ganchos)
