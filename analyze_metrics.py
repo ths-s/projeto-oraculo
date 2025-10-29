@@ -1,24 +1,35 @@
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import Counter
 from openai import OpenAI
 
 
+# ===========================
+# 🔹 DETECTA O PROVEDOR DE IA
+# ===========================
+AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").lower()
 
-#
-os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
-client = OpenAI(api_key=os.getenv("GROQ_API_KEY"))
+if AI_PROVIDER == "groq":
+    base_url = "https://api.groq.com/openai/v1"
+    api_key = os.getenv("GROQ_API_KEY")
+    model_name = "llama-3.1-70b-versatile"
+elif AI_PROVIDER == "openai":
+    base_url = "https://api.openai.com/v1"
+    api_key = os.getenv("OPENAI_API_KEY")
+    model_name = "gpt-5"
+else:
+    raise ValueError(f"❌ Provedor de IA desconhecido: {AI_PROVIDER}")
 
-# Inicializa o cliente OpenAI com a API_KEY do ambiente
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise ValueError(f"❌ ERRO: chave da API para {AI_PROVIDER} não encontrada nos secrets do GitHub Actions.")
 
-if not OPENAI_API_KEY:
-    raise ValueError("❌ ERRO: variável de ambiente OPENAI_API_KEY não encontrada. Configure-a no GitHub Actions Secrets.")
-
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=api_key, base_url=base_url)
 
 
+# ===========================
+# 🔹 FUNÇÕES AUXILIARES
+# ===========================
 def load_json(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -74,6 +85,9 @@ def summarize_performance(metadata, ganchos):
     return summary
 
 
+# ===========================
+# 🔹 GERA OS GANCHOS COM IA
+# ===========================
 def gerar_ganchos_com_ia(analise):
     prompt = f"""
     Gere um JSON criativo com base nas tendências e melhores horários detectados a seguir:
@@ -105,14 +119,12 @@ def gerar_ganchos_com_ia(analise):
       "melhor_horario_instagram": ["13:00", "21:00"],
       "data_geracao": "AAAA-MM-DD HH:MM:SS"
     }}
-
     Gere títulos e descrições autênticos, curtos e com apelo emocional.
-    Use os melhores horários encontrados no JSON acima.
     """
 
     try:
         response = client.chat.completions.create(
-            model="gpt-5",
+            model=model_name,
             messages=[
                 {"role": "system", "content": "Você é um criador especialista em virais de YouTube e Instagram."},
                 {"role": "user", "content": prompt}
@@ -134,6 +146,9 @@ def gerar_ganchos_com_ia(analise):
         }
 
 
+# ===========================
+# 🔹 MAIN
+# ===========================
 def main():
     metadata = load_json("data/metrics.json")
     ganchos = load_json("gancho_data.json")
