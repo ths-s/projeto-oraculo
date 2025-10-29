@@ -91,6 +91,14 @@ jobs:
           mkdir -p data
           echo '${{ steps.analyze.outputs.output }}' > data/result.json
 
+      - name: Commit JSON
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data/result.json
+          git commit -m "Add resultado do analyze_metrics.py" || echo "Sem alterações"
+          git push
+
 
       - name: Atualizar cron dos workflows
         run: python3 update_cron.py
