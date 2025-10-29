@@ -1,30 +1,33 @@
-📊 Iniciando análise...
-✅ Análise concluída!
 {
-  "gancho_youtube": {
-    "title": "💰 Parece brincadeira, mas é real!",
-    "description": "Só quem clicar no link da bio ou nos comentários vai entender o porquê disso estar viralizando.",
-    "tags": [
-      "dinheiro",
-      "linknabio",
-      "linkfixado",
-      "viral",
-      "descubra",
-      "impacto"
+    "gerado_em": "2025-10-29T13:14:08.789091",
+    "quantidade_posts": 2,
+    "dados": [
+        {
+            "timestamp": "2025-10-29T13:14:08.789079",
+            "metricas": {
+                "engajamento": 88,
+                "alcance": 4122,
+                "cliques": 34,
+                "conversoes": 4
+            },
+            "recomendacoes": [
+                "Adicione uma chamada para ação (CTA) mais clara.",
+                "Republique o conteúdo em outros horários."
+            ]
+        },
+        {
+            "timestamp": "2025-10-29T13:14:08.789089",
+            "metricas": {
+                "engajamento": 53,
+                "alcance": 1612,
+                "cliques": 209,
+                "conversoes": 8
+            },
+            "recomendacoes": [
+                "Use ganchos mais fortes no início do post."
+            ]
+        }
     ]
-  },
-  "gancho_instagram": {
-    "title": "💡 Eu testei sem esperar nada… e olha no que deu!",
-    "description": "Explico tudo no link da bio ou no link fixado (antes que tirem do ar).",
-    "tags": [
-      "descubra",
-      "linknabio",
-      "linkfixado",
-      "resultado",
-      "exclusivo"
-    ]
-  },
-  "melhor_horario_youtube": "04:00",
-  "melhor_horario_instagram": "18:00",
-  "data_geracao": "2025-10-29 12:57:04"
 }
+
+✅ Resultado salvo em: data/result_2025-10-29_13-14-08.json
