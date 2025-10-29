@@ -82,15 +82,14 @@ def summarize_performance(metadata, ganchos):
         ],
         "ganchos_existentes": list(ganchos.keys()),
     }
-import json
 
 def gerar_ganchos_com_ia(analise):
     try:
         response = client.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": "Gere ganchos curtos de vídeos e horários otimizados em formato JSON."},
-                {"role": "user", "content": f"Baseado na análise: {analise}"}
+                {"role": "system", "content": "Responda apenas com JSON válido. Não use markdown, comentários ou texto fora do JSON."},
+                {"role": "user", "content": f"Baseado na análise: {json.dumps(analise, ensure_ascii=False)} gere ganchos curtos e horários ideais para vídeos."}
             ]
         )
 
@@ -99,10 +98,14 @@ def gerar_ganchos_com_ia(analise):
         if not texto:
             raise ValueError("Resposta da IA veio vazia.")
 
-        # tenta validar o JSON
+        # 🔹 Remove blocos de markdown tipo ```json ... ```
+        texto = re.sub(r"^```(?:json)?", "", texto.strip())
+        texto = re.sub(r"```$", "", texto.strip())
+        texto = texto.strip()
+
         try:
             return json.loads(texto)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
             print("⚠️ IA retornou texto inválido, resposta bruta:")
             print(texto)
             raise ValueError("A resposta da IA não é um JSON válido.")
@@ -116,8 +119,7 @@ def gerar_ganchos_com_ia(analise):
                 "melhor_horario_instagram": []
             },
             "data_geracao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-
+        
 
 
 # ===========================
