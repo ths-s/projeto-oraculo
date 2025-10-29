@@ -2,15 +2,14 @@
 ✅ Análise concluída!
 {
   "gancho_youtube": {
-    "title": "🚀 Isso tá viralizando por um motivo…",
-    "description": "Se quiser entender, o link da bio ou fixado é o caminho. Mas vê logo.",
+    "title": "💡 Eu testei sem esperar nada… e olha no que deu!",
+    "description": "Explico tudo no link da bio ou no link fixado (antes que tirem do ar).",
     "tags": [
-      "viral",
+      "descubra",
       "linknabio",
       "linkfixado",
-      "descubra",
-      "urgente",
-      "trend"
+      "resultado",
+      "exclusivo"
     ]
   },
   "gancho_instagram": {
@@ -25,36 +24,7 @@
       "trend"
     ]
   },
-  "melhor_horario_postagem": "20:00",
-  "data_geracao": "2025-10-29 11:24:25"
-}
-📊 Iniciando análise...
-✅ Análise concluída!
-{
-  "gancho_youtube": {
-    "title": "⚡ Isso aqui tá sendo removido em vários lugares…",
-    "description": "Se ainda estiver no ar, o link da bio ou fixado te leva direto pra fonte.",
-    "tags": [
-      "proibido",
-      "linknabio",
-      "linkfixado",
-      "exclusivo",
-      "confira",
-      "urgente"
-    ]
-  },
-  "gancho_instagram": {
-    "title": "🤯 É simples, mas ninguém faz isso…",
-    "description": "Olha o link da bio ou o link fixado e me agrade depois.",
-    "tags": [
-      "segredo",
-      "descubra",
-      "linknabio",
-      "linkfixado",
-      "simples",
-      "efetivo"
-    ]
-  },
-  "melhor_horario_postagem": "20:00",
-  "data_geracao": "2025-10-29 11:24:25"
+  "melhor_horario_youtube": "04:00",
+  "melhor_horario_instagram": "10:00",
+  "data_geracao": "2025-10-29 11:29:47"
 }
