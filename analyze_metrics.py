@@ -119,7 +119,7 @@ def gerar_ganchos_com_ia(analise):
                 "melhor_horario_instagram": []
             },
             "data_geracao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+        }        
 
 
 # ===========================
