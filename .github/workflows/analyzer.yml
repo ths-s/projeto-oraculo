@@ -75,11 +75,16 @@ jobs:
           git commit -m "Atualiza recomendações automáticas" || echo "Nada a commitar"
           git push
 
-      - name: Executar script e capturar saída
+      - name: Executar script e capturar saída JSON
         id: analyze
         run: |
-          OUTPUT=$(python3 analyze_metrics.py)
-          echo "output=$OUTPUT" >> $GITHUB_OUTPUT
+          OUTPUT=$(python3 analyze_metrics.py | tail -n 1)
+          {
+            echo 'output<<EOF'
+            echo "$OUTPUT"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
 
       - name: Salvar JSON em arquivo
         run: |
