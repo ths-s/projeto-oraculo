@@ -13,7 +13,7 @@ AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").lower()
 if AI_PROVIDER == "groq":
     base_url = "https://api.groq.com/openai/v1"
     api_key = os.getenv("GROQ_API_KEY")
-    model_name = "llama-3.1-70b-versatile"
+    model_name = "openai/gpt-oss-20b"
 elif AI_PROVIDER == "openai":
     base_url = "https://api.openai.com/v1"
     api_key = os.getenv("OPENAI_API_KEY")
