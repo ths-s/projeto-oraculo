@@ -141,18 +141,22 @@ def escolher_ganchos(recomendacoes, ganchos_data):
     yt_gancho = random.choice(ganchos_disponiveis)
     ig_gancho = random.choice(ganchos_disponiveis)
 
-    horarios = (
-        recomendacoes.get("youtube", {}).get("melhores_horarios", [])
-        + recomendacoes.get("instagram", {}).get("melhores_horarios", [])
-    )
-    melhor_horario = max(horarios) if horarios else random.choice([11, 14, 17, 19, 21])
+    # Pega os melhores horários de cada rede
+    yt_horarios = recomendacoes.get("youtube", {}).get("melhores_horarios", [])
+    ig_horarios = recomendacoes.get("instagram", {}).get("melhores_horarios", [])
+
+    # Escolhe o melhor horário para cada uma
+    yt_melhor = yt_horarios[0] if yt_horarios else random.choice([11, 14, 17, 19, 21])
+    ig_melhor = ig_horarios[0] if ig_horarios else random.choice([10, 13, 16, 18, 20])
 
     return {
         "gancho_youtube": ganchos_data[yt_gancho],
         "gancho_instagram": ganchos_data[ig_gancho],
-        "melhor_horario_postagem": f"{melhor_horario:02d}:00",
+        "melhor_horario_youtube": f"{yt_melhor:02d}:00",
+        "melhor_horario_instagram": f"{ig_melhor:02d}:00",
         "data_geracao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
+
 #!/usr/bin/env python3
 # analyze_metrics.py
 import os
@@ -296,18 +300,22 @@ def escolher_ganchos(recomendacoes, ganchos_data):
     yt_gancho = random.choice(ganchos_disponiveis)
     ig_gancho = random.choice(ganchos_disponiveis)
 
-    horarios = (
-        recomendacoes.get("youtube", {}).get("melhores_horarios", [])
-        + recomendacoes.get("instagram", {}).get("melhores_horarios", [])
-    )
-    melhor_horario = max(horarios) if horarios else random.choice([11, 14, 17, 19, 21])
+    # Pega os melhores horários de cada rede
+    yt_horarios = recomendacoes.get("youtube", {}).get("melhores_horarios", [])
+    ig_horarios = recomendacoes.get("instagram", {}).get("melhores_horarios", [])
+
+    # Escolhe o melhor horário para cada uma
+    yt_melhor = yt_horarios[0] if yt_horarios else random.choice([11, 14, 17, 19, 21])
+    ig_melhor = ig_horarios[0] if ig_horarios else random.choice([10, 13, 16, 18, 20])
 
     return {
         "gancho_youtube": ganchos_data[yt_gancho],
         "gancho_instagram": ganchos_data[ig_gancho],
-        "melhor_horario_postagem": f"{melhor_horario:02d}:00",
+        "melhor_horario_youtube": f"{yt_melhor:02d}:00",
+        "melhor_horario_instagram": f"{ig_melhor:02d}:00",
         "data_geracao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
+
 
 # ======================
 # 💾 Execução e salvamento
