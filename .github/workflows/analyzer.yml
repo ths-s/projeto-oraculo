@@ -75,18 +75,16 @@ jobs:
           git commit -m "Atualiza recomendações automáticas" || echo "Nada a commitar"
           git push
 
-      - name: Extrair JSON do log
+      - name: Executar script e capturar saída
+        id: analyze
         run: |
-          # supondo que o log esteja em output.log
-          # pega tudo entre a primeira chave { e a última }
-          JSON=$(awk '/\{/{flag=1} flag; /\}/{flag=0}' output.log)
+          OUTPUT=$(python3 analyze_metrics.py)
+          echo "output=$OUTPUT" >> $GITHUB_OUTPUT
 
-          # salva o conteúdo em data/result.json
-          echo "$JSON" > data/result.json
-
-          # opcional: validar com jq
-          jq . data/result.json
-
+      - name: Salvar JSON em arquivo
+        run: |
+          mkdir -p data
+          echo '${{ steps.analyze.outputs.output }}' > data/result.json
 
 
       - name: Atualizar cron dos workflows
