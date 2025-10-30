@@ -88,62 +88,42 @@ def summarize_performance(metadata, ganchos):
 # ===========================
 # 🔹 GERA OS GANCHOS COM IA
 # ===========================
+import json
+
 def gerar_ganchos_com_ia(analise):
-    prompt = f"""
-    Gere um JSON criativo com base nas tendências e melhores horários detectados a seguir:
-    {json.dumps(analise, indent=2, ensure_ascii=False)}
-
-    O formato de saída DEVE ser exatamente assim:
-    {{
-      "gancho_youtube_1": {{
-        "title": "😳 Eu não devia mostrar isso aqui...",
-        "description": "Se ainda estiver disponível, tá no link da bio...",
-        "tags": ["proibido", "descubra", "linknabio"]
-      }},
-      "gancho_youtube_2": {{
-        "title": "🚨 Isso vai sair do ar em poucas horas!",
-        "description": "Se você perdeu o último, nem adianta chorar depois...",
-        "tags": ["urgente", "exclusivo", "linkfixado"]
-      }},
-      "gancho_instagram_1": {{
-        "title": "👀 Você vai entender só depois que ver o link.",
-        "description": "Não é o que parece... mas é exatamente o que você precisa ver hoje.",
-        "tags": ["mistério", "curioso", "linknabio"]
-      }},
-      "gancho_instagram_2": {{
-        "title": "🔥 Todo mundo tá comentando sobre isso!",
-        "description": "Nem todo mundo vai gostar, mas você precisa ver.",
-        "tags": ["viral", "descubra", "trending"]
-      }},
-      "melhor_horario_youtube": ["04:00", "18:00"],
-      "melhor_horario_instagram": ["13:00", "21:00"],
-      "data_geracao": "AAAA-MM-DD HH:MM:SS"
-    }}
-    Gere títulos e descrições autênticos, curtos e com apelo emocional.
-    """
-
     try:
         response = client.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": "Você é um criador especialista em virais de YouTube e Instagram."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.8
+                {"role": "system", "content": "Gere ganchos curtos de vídeos e horários otimizados em formato JSON."},
+                {"role": "user", "content": f"Baseado na análise: {analise}"}
+            ]
         )
 
-        content = response.choices[0].message.content
-        return json.loads(content)
+        texto = response.choices[0].message.content.strip()
+
+        if not texto:
+            raise ValueError("Resposta da IA veio vazia.")
+
+        # tenta validar o JSON
+        try:
+            return json.loads(texto)
+        except json.JSONDecodeError:
+            print("⚠️ IA retornou texto inválido, resposta bruta:")
+            print(texto)
+            raise ValueError("A resposta da IA não é um JSON válido.")
 
     except Exception as e:
         print(f"⚠️ Erro ao gerar ganchos com IA: {e}")
         return {
             "erro": str(e),
             "fallback": {
-                "melhor_horario_youtube": analise.get("melhor_horario_youtube", []),
-                "melhor_horario_instagram": analise.get("melhor_horario_instagram", [])
-            }
+                "melhor_horario_youtube": ["20:00", "16:00"],
+                "melhor_horario_instagram": []
+            },
+            "data_geracao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
+
 
 
 # ===========================
