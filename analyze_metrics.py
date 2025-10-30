@@ -9,6 +9,7 @@ from openai import OpenAI
 # 🔹 CONFIGURAÇÃO DO PROVEDOR DE IA
 # ===========================
 AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").lower()
+api_key = os.getenv("GROQ_API_KEY")
 
 if AI_PROVIDER == "groq":
     api_key = os.getenv("GROQ_API_KEY")
