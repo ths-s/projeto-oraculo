@@ -1,30 +1,31 @@
 import os
-import re
 import json
 from datetime import datetime
 from collections import Counter
 from openai import OpenAI
 
+
 # ===========================
-# 🔹 CONFIGURAÇÃO DO PROVEDOR DE IA
+# 🔹 DETECTA O PROVEDOR DE IA
 # ===========================
 AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").lower()
 
 if AI_PROVIDER == "groq":
-    api_key = os.getenv("GROQ_API_KEY")
     base_url = "https://api.groq.com/openai/v1"
-    model_name = "llama-3.1-8b-instant"
+    api_key = os.getenv("GROQ_API_KEY")
+    model_name = "openai/gpt-oss-20b"
 elif AI_PROVIDER == "openai":
-    api_key = os.getenv("OPENAI_API_KEY")
     base_url = "https://api.openai.com/v1"
-    model_name = "gpt-4o-mini"
+    api_key = os.getenv("OPENAI_API_KEY")
+    model_name = "gpt-5"
 else:
-    raise ValueError(f"❌ Provedor de IA inválido: {AI_PROVIDER}")
+    raise ValueError(f"❌ Provedor de IA desconhecido: {AI_PROVIDER}")
 
 if not api_key:
     raise ValueError(f"❌ ERRO: chave da API para {AI_PROVIDER} não encontrada nos secrets do GitHub Actions.")
 
 client = OpenAI(api_key=api_key, base_url=base_url)
+
 
 # ===========================
 # 🔹 FUNÇÕES AUXILIARES
@@ -84,43 +85,64 @@ def summarize_performance(metadata, ganchos):
     return summary
 
 
+# ===========================
+# 🔹 GERA OS GANCHOS COM IA
+# ===========================
 def gerar_ganchos_com_ia(analise):
+    prompt = f"""
+    Gere um JSON criativo com base nas tendências e melhores horários detectados a seguir:
+    {json.dumps(analise, indent=2, ensure_ascii=False)}
+
+    O formato de saída DEVE ser exatamente assim:
+    {{
+      "gancho_youtube_1": {{
+        "title": "😳 Eu não devia mostrar isso aqui...",
+        "description": "Se ainda estiver disponível, tá no link da bio...",
+        "tags": ["proibido", "descubra", "linknabio"]
+      }},
+      "gancho_youtube_2": {{
+        "title": "🚨 Isso vai sair do ar em poucas horas!",
+        "description": "Se você perdeu o último, nem adianta chorar depois...",
+        "tags": ["urgente", "exclusivo", "linkfixado"]
+      }},
+      "gancho_instagram_1": {{
+        "title": "👀 Você vai entender só depois que ver o link.",
+        "description": "Não é o que parece... mas é exatamente o que você precisa ver hoje.",
+        "tags": ["mistério", "curioso", "linknabio"]
+      }},
+      "gancho_instagram_2": {{
+        "title": "🔥 Todo mundo tá comentando sobre isso!",
+        "description": "Nem todo mundo vai gostar, mas você precisa ver.",
+        "tags": ["viral", "descubra", "trending"]
+      }},
+      "melhor_horario_youtube": ["04:00", "18:00"],
+      "melhor_horario_instagram": ["13:00", "21:00"],
+      "data_geracao": "AAAA-MM-DD HH:MM:SS"
+    }}
+    Gere títulos e descrições autênticos, curtos e com apelo emocional.
+    """
+
     try:
         response = client.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": "Responda apenas com JSON válido. Não use markdown, comentários ou texto fora do JSON."},
-                {"role": "user", "content": f"Baseado nesta análise: {json.dumps(analise, ensure_ascii=False)} gere ganchos curtos e horários ideais para vídeos e posts."}
+                {"role": "system", "content": "Você é um criador especialista em virais de YouTube e Instagram."},
+                {"role": "user", "content": prompt}
             ],
             temperature=0.8
         )
 
-        texto = response.choices[0].message.content.strip()
-
-        if not texto:
-            raise ValueError("Resposta da IA veio vazia.")
-
-        # 🔹 Remove blocos de markdown tipo ```json ... ```
-        texto = re.sub(r"^```(?:json)?", "", texto.strip())
-        texto = re.sub(r"```$", "", texto.strip())
-        texto = texto.strip()
-
-        try:
-            return json.loads(texto)
-        except json.JSONDecodeError:
-            print("⚠️ IA retornou texto inválido, resposta bruta:")
-            print(texto)
-            raise ValueError("A resposta da IA não é um JSON válido.")
+        content = response.choices[0].message.content
+        return json.loads(content)
 
     except Exception as e:
         print(f"⚠️ Erro ao gerar ganchos com IA: {e}")
         return {
             "erro": str(e),
             "fallback": {
-                "melhor_horario_youtube": ["20:00", "16:00"],
-                "melhor_horario_instagram": []
-            },
-            "data_geracao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "melhor_horario_youtube": analise.get("melhor_horario_youtube", []),
+                "melhor_horario_instagram": analise.get("melhor_horario_instagram", [])
+            }
         }
 
 
