@@ -8,21 +8,20 @@ from openai import OpenAI
 # ===========================
 # 🔹 DETECTA O PROVEDOR DE IA
 # ===========================
-AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").lower()
+AI_PROVIDER = "groq"
 
-if AI_PROVIDER == "groq":
-    base_url = "https://api.groq.com/openai/v1"
-    api_key = os.getenv("GROQ_API_KEY")
-    model_name = "openai/gpt-oss-20b"
-elif AI_PROVIDER == "openai":
-    base_url = "https://api.openai.com/v1"
-    api_key = os.getenv("OPENAI_API_KEY")
-    model_name = "gpt-5"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if GROQ_API_KEY:
+    os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
+    client = OpenAI(api_key=GROQ_API_KEY)
+    MODEL_NAME = "llama-3.1-8b-instant"
+elif OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    MODEL_NAME = "gpt-4o-mini"
 else:
-    raise ValueError(f"❌ Provedor de IA desconhecido: {AI_PROVIDER}")
-
-if not api_key:
-    raise ValueError(f"❌ ERRO: chave da API para {AI_PROVIDER} não encontrada nos secrets do GitHub Actions.")
+    raise ValueError("❌ Nenhuma chave de IA encontrada nos secrets.")
 
 client = OpenAI(api_key=api_key, base_url=base_url)
 
