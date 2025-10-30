@@ -91,7 +91,30 @@ def gerar_ganchos_com_ia(analise):
             model=model_name,
             messages=[
                 {"role": "system", "content": "Responda apenas com JSON válido. Não use markdown, comentários ou texto fora do JSON."},
-                {"role": "user", "content": f"Baseado nesta análise: {json.dumps(analise, ensure_ascii=False)} gere ganchos curtos e horários ideais para vídeos e posts."}
+                {"role": "user", "content": f"""Baseado nesta análise: {json.dumps(analise, ensure_ascii=False)} gere ganchos curtos e horários ideais para vídeos e posts. também gere a resposta neste formato:      "gancho_youtube_1": {{
+        "title": "😳 Eu não devia mostrar isso aqui...",
+        "description": "Se ainda estiver disponível, tá no link da bio...",
+        "tags": ["proibido", "descubra", "linknabio"]
+      }},
+      "gancho_youtube_2": {{
+        "title": "🚨 Isso vai sair do ar em poucas horas!",
+        "description": "Se você perdeu o último, nem adianta chorar depois...",
+        "tags": ["urgente", "exclusivo", "linkfixado"]
+      }},
+      "gancho_instagram_1": {{
+        "title": "👀 Você vai entender só depois que ver o link.",
+        "description": "Não é o que parece... mas é exatamente o que você precisa ver hoje.",
+        "tags": ["mistério", "curioso", "linknabio"]
+      }},
+      "gancho_instagram_2": {{
+        "title": "🔥 Todo mundo tá comentando sobre isso!",
+        "description": "Nem todo mundo vai gostar, mas você precisa ver.",
+        "tags": ["viral", "descubra", "trending"]
+      }},
+      "melhor_horario_youtube": ["04:00", "18:00"],
+      "melhor_horario_instagram": ["13:00", "21:00"],
+      "data_geracao": "AAAA-MM-DD HH:MM:SS"
+    }}"""}
             ],
             temperature=0.8
         )
