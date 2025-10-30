@@ -1,30 +1,30 @@
 import os
+import re
 import json
 from datetime import datetime
 from collections import Counter
 from openai import OpenAI
 
-
 # ===========================
-# 🔹 DETECTA O PROVEDOR DE IA
+# 🔹 CONFIGURAÇÃO DO PROVEDOR DE IA
 # ===========================
-AI_PROVIDER = "groq"
+AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").lower()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-if GROQ_API_KEY:
-    os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
-    client = OpenAI(api_key=GROQ_API_KEY)
-    MODEL_NAME = "llama-3.1-8b-instant"
-elif OPENAI_API_KEY:
-    client = OpenAI(api_key=OPENAI_API_KEY)
-    MODEL_NAME = "gpt-4o-mini"
+if AI_PROVIDER == "groq":
+    api_key = os.getenv("GROQ_API_KEY")
+    base_url = "https://api.groq.com/openai/v1"
+    model_name = "llama-3.1-8b-instant"
+elif AI_PROVIDER == "openai":
+    api_key = os.getenv("OPENAI_API_KEY")
+    base_url = "https://api.openai.com/v1"
+    model_name = "gpt-4o-mini"
 else:
-    raise ValueError("❌ Nenhuma chave de IA encontrada nos secrets.")
+    raise ValueError(f"❌ Provedor de IA inválido: {AI_PROVIDER}")
+
+if not api_key:
+    raise ValueError(f"❌ ERRO: chave da API para {AI_PROVIDER} não encontrada nos secrets do GitHub Actions.")
 
 client = OpenAI(api_key=api_key, base_url=base_url)
-
 
 # ===========================
 # 🔹 FUNÇÕES AUXILIARES
@@ -81,6 +81,8 @@ def summarize_performance(metadata, ganchos):
         ],
         "ganchos_existentes": list(ganchos.keys()),
     }
+    return summary
+
 
 def gerar_ganchos_com_ia(analise):
     try:
@@ -88,8 +90,9 @@ def gerar_ganchos_com_ia(analise):
             model=model_name,
             messages=[
                 {"role": "system", "content": "Responda apenas com JSON válido. Não use markdown, comentários ou texto fora do JSON."},
-                {"role": "user", "content": f"Baseado na análise: {json.dumps(analise, ensure_ascii=False)} gere ganchos curtos e horários ideais para vídeos."}
-            ]
+                {"role": "user", "content": f"Baseado nesta análise: {json.dumps(analise, ensure_ascii=False)} gere ganchos curtos e horários ideais para vídeos e posts."}
+            ],
+            temperature=0.8
         )
 
         texto = response.choices[0].message.content.strip()
@@ -104,7 +107,7 @@ def gerar_ganchos_com_ia(analise):
 
         try:
             return json.loads(texto)
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             print("⚠️ IA retornou texto inválido, resposta bruta:")
             print(texto)
             raise ValueError("A resposta da IA não é um JSON válido.")
@@ -118,7 +121,7 @@ def gerar_ganchos_com_ia(analise):
                 "melhor_horario_instagram": []
             },
             "data_geracao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }        
+        }
 
 
 # ===========================
