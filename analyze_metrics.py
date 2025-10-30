@@ -8,7 +8,7 @@ from openai import OpenAI
 # ===========================
 # 🔹 DETECTA O PROVEDOR DE IA
 # ===========================
-AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").lower()
+AI_PROVIDER = os.getenv("GROQ_API_KEY", "groq").lower()
 
 if AI_PROVIDER == "groq":
     base_url = "https://api.groq.com/openai/v1"
