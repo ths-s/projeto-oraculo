@@ -163,7 +163,16 @@ def main():
     with open("ganchos_otimizados.json", "w", encoding="utf-8") as f:
         json.dump(resultado, f, indent=2, ensure_ascii=False)
 
-    print(json.dumps(resultado, indent=2, ensure_ascii=False))
+    resultado = json.dumps(resultado, indent=2, ensure_ascii=False) # ou a função que gera os dados
+    os.makedirs("data", exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output_path = f"data/resultado_{timestamp}.json"
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(resultado, f, indent=2, ensure_ascii=False)
+
+    print(f"✅ Resultado salvo em {output_path}")
 
 
 if __name__ == "__main__":
