@@ -18,7 +18,7 @@ jobs:
       - name: Ensure folders exist
         run: |
           mkdir -p videos/pending
-          mkdir -p videos/posted
+          mkdir -p videos/postedvideos/pending
           mkdir -p data
           echo "✅ Pastas de vídeos verificadas/criadas."
 
