@@ -39,12 +39,15 @@ def listar_videos(service):
     )
 
     res = service.files().list(
-        q=query,
+        q=f"'{PASTA_PARA_POSTAR}' in parents",
         fields="files(id,name,mimeType)",
         supportsAllDrives=True,
         includeItemsFromAllDrives=True,
         corpora="allDrives"
     ).execute()
+
+    print("DEBUG TOTAL:", res)
+
 
     print("📂 Arquivos encontrados no Drive:", res.get("files", []))
     return res.get("files", [])
