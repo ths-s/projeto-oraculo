@@ -20,6 +20,14 @@ if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
 
 VIDEOS_PENDING = "videos/pending"
 
+res = service.files().list(
+    q=f"'{PASTA_PARA_POSTAR}' in parents",
+    fields="files(id,name,mimeType)"
+).execute()
+
+print(res)
+
+
 def drive_service():
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES
