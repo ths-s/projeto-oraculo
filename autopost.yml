@@ -1,0 +1,42 @@
+name: Auto Post Vídeos
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Criar credenciais Drive
+        run: echo '${{ secrets.GDRIVE_SERVICE_ACCOUNT }}' > service_account.json
+
+      - name: Criar client_secret.json
+        run: echo '${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}' > client_secret.json
+
+      - name: Criar token.pickle
+        if: secrets.YOUTUBE_TOKEN_PICKLE != ''
+        run: |
+          echo "${{ secrets.YOUTUBE_TOKEN_PICKLE }}" | base64 -d > token.pickle
+
+      - name: Rodar autopost
+        env:
+          PASTA_PARA_POSTAR: ${{ secrets.PASTA_PARA_POSTAR }}
+          PASTA_POSTADOS: ${{ secrets.PASTA_POSTADOS }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
+        run: python main.py

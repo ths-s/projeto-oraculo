@@ -21,7 +21,7 @@ jobs:
           mkdir -p videos/postedvideos/pending
           mkdir -p data
           echo "✅ Pastas de vídeos verificadas/criadas."
-
+          
 #      - name: Install ngrok
 #        run: |
 #          sudo mv ngrok /usr/local/bin
