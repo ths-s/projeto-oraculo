@@ -34,8 +34,21 @@ def listar_videos(service):
         "name contains '.mp4' or "
         "name contains '.mov' or "
         "name contains '.mkv'"
-        ")"
+        ") and "
+        "mimeType != 'application/vnd.google-apps.shortcut'"
     )
+
+    res = service.files().list(
+        q=query,
+        fields="files(id,name,mimeType)",
+        supportsAllDrives=True,
+        includeItemsFromAllDrives=True,
+        corpora="allDrives"
+    ).execute()
+
+    print("📂 Arquivos encontrados no Drive:", res.get("files", []))
+    return res.get("files", [])
+
 
     res = service.files().list(
         q=query,
