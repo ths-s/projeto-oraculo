@@ -172,6 +172,23 @@ def main():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(resultado, f, indent=2, ensure_ascii=False)
 
+
+
+    resultado = gerar_ganchos_com_ia(...)
+
+    omakedirss.("data", exist_ok=True)
+    caminho = "data/resultado.json"
+
+    # Salvar como JSON real, não string
+    with open(caminho, "w", encoding="utf-8") as f:
+        json.dump(resultado, f, indent=2, ensure_ascii=False)
+
+    print(f"✅ Resultado salvo corretamente em {caminho}")
+    
+
+
+
+
     print(f"✅ Resultado salvo em {output_path}")
 
 
