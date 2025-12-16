@@ -20,14 +20,6 @@ if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
 
 VIDEOS_PENDING = "videos/pending"
 
-res = service.files().list(
-    q=f"'{PASTA_PARA_POSTAR}' in parents",
-    fields="files(id,name,mimeType)"
-).execute()
-
-print(res)
-
-
 def drive_service():
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES
@@ -35,8 +27,22 @@ def drive_service():
     return build('drive', 'v3', credentials=creds)
 
 def listar_videos(service):
-    query = f"'{PASTA_PARA_POSTAR}' in parents and mimeType contains 'video/'"
-    res = service.files().list(q=query, fields="files(id,name)").execute()
+    query = (
+        f"'{PASTA_PARA_POSTAR}' in parents and "
+        "("
+        "mimeType contains 'video/' or "
+        "name contains '.mp4' or "
+        "name contains '.mov' or "
+        "name contains '.mkv'"
+        ")"
+    )
+
+    res = service.files().list(
+        q=query,
+        fields="files(id,name,mimeType)"
+    ).execute()
+
+    print("📂 Arquivos encontrados no Drive:", res.get("files", []))
     return res.get("files", [])
 
 def baixar_video(service, file_id, name):
