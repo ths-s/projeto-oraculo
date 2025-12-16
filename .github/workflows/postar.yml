@@ -30,4 +30,7 @@ jobs:
         env:
           PASTA_PARA_POSTAR: ${{ secrets.PASTA_PARA_POSTAR }}
           PASTA_POSTADOS: ${{ secrets.PASTA_POSTADOS }}
+          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+     
+
         run: python main.py
