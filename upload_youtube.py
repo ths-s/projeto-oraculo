@@ -43,18 +43,20 @@ def get_authenticated_service():
 
     if not credentials or not credentials.valid:
         if credentials and credentials.expired and credentials.refresh_token:
+            print("🔄 Atualizando token de acesso...")
             credentials.refresh(Request())
         else:
-            flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-                CLIENT_SECRETS_FILE, scopes
+            # Se chegar aqui no GitHub Actions, vai dar erro.
+            # Precisamos do token inicial gerado localmente.
+            raise ValueError(
+                "❌ Token inválido ou inexistente. "
+                "Gere o token.pickle localmente e salve no GitHub Secrets."
             )
-            credentials = flow.run_local_server(port=0)
 
         with open(TOKEN_FILE, "wb") as f:
             pickle.dump(credentials, f)
 
     return googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
-
 
 def find_videos(folder=VIDEO_FOLDER):
     if not os.path.exists(folder):
