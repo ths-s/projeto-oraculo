@@ -31,6 +31,6 @@ jobs:
           PASTA_PARA_POSTAR: ${{ secrets.PASTA_PARA_POSTAR }}
           PASTA_POSTADOS: ${{ secrets.PASTA_POSTADOS }}
           YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
-     
+          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }} # Adicione esta linha
 
         run: python main.py
