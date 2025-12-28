@@ -96,8 +96,8 @@ def main():
 
     baixar_video(service, video["id"], video["name"])
 
-    print("▶️ Upload YouTube")
-    subprocess.check_call(["python", "upload_youtube.py"])
+    # print("▶️ Upload YouTube")
+    #subprocess.check_call(["python", "upload_youtube.py"])
 
     print("▶️ Upload Instagram")
     subprocess.check_call(["python", "upload_instagram.py"])

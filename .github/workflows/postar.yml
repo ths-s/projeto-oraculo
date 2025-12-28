@@ -22,6 +22,16 @@ jobs:
         run: |
           pip install google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
 
+      - name: Instalar ngrok
+        run: |
+          sudo apt update
+          sudo apt install -y unzip
+          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update
+          sudo apt install -y ngrok
+
+
       - name: Criar credenciais
         run: |
           echo '${{ secrets.GDRIVE_SERVICE_ACCOUNT }}' > service_account.json
@@ -31,6 +41,6 @@ jobs:
           PASTA_PARA_POSTAR: ${{ secrets.PASTA_PARA_POSTAR }}
           PASTA_POSTADOS: ${{ secrets.PASTA_POSTADOS }}
           YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
-          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }} # Adicione esta linha
+          YOUTUBE_TOKEN_PICKLE: ${{ secrets.YOUTUBE_TOKEN_PICKLE }}
 
         run: python main.py
