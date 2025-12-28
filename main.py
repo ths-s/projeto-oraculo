@@ -26,6 +26,7 @@ def drive_service():
     )
     return build('drive', 'v3', credentials=creds)
 
+
 def listar_videos(service):
     query = (
         f"'{PASTA_PARA_POSTAR}' in parents and "
@@ -39,27 +40,21 @@ def listar_videos(service):
     )
 
     res = service.files().list(
-        q=f"'{PASTA_PARA_POSTAR}' in parents",
+        q=query,
         fields="files(id,name,mimeType)",
         supportsAllDrives=True,
         includeItemsFromAllDrives=True,
         corpora="allDrives"
     ).execute()
 
-    print("DEBUG TOTAL:", res)
-
-
     print("📂 Arquivos encontrados no Drive:", res.get("files", []))
     return res.get("files", [])
 
 
-    res = service.files().list(
-        q=query,
-        fields="files(id,name,mimeType)"
-    ).execute()
 
-    print("📂 Arquivos encontrados no Drive:", res.get("files", []))
-    return res.get("files", [])
+
+
+
 
 def baixar_video(service, file_id, name):
     os.makedirs(VIDEOS_PENDING, exist_ok=True)
