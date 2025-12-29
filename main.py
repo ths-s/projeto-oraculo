@@ -1,6 +1,8 @@
 import os
 import io
+import time
 import subprocess
+import requests
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -11,14 +13,8 @@ SERVICE_ACCOUNT_FILE = 'service_account.json'
 PASTA_PARA_POSTAR = os.environ['PASTA_PARA_POSTAR']
 PASTA_POSTADOS = os.environ['PASTA_POSTADOS']
 
-
-if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
-    raise RuntimeError(
-        "❌ PASTA_PARA_POSTAR ou PASTA_POSTADOS não definidos nos secrets."
-    )
-
-
 VIDEOS_PENDING = "videos/pending"
+
 
 def drive_service():
     creds = service_account.Credentials.from_service_account_file(
@@ -28,20 +24,10 @@ def drive_service():
 
 
 def listar_videos(service):
-    query = (
-        f"'{PASTA_PARA_POSTAR}' in parents and "
-        "("
-        "mimeType contains 'video/' or "
-        "name contains '.mp4' or "
-        "name contains '.mov' or "
-        "name contains '.mkv'"
-        ") and "
-        "mimeType != 'application/vnd.google-apps.shortcut'"
-    )
-
+    query = f"'{PASTA_PARA_POSTAR}' in parents and mimeType contains 'video/'"
     res = service.files().list(
         q=query,
-        fields="files(id,name,mimeType)",
+        fields="files(id,name)",
         supportsAllDrives=True,
         includeItemsFromAllDrives=True,
         corpora="allDrives"
@@ -49,11 +35,6 @@ def listar_videos(service):
 
     print("📂 Arquivos encontrados no Drive:", res.get("files", []))
     return res.get("files", [])
-
-
-
-
-
 
 
 def baixar_video(service, file_id, name):
@@ -70,6 +51,7 @@ def baixar_video(service, file_id, name):
 
     return path
 
+
 def mover_video_drive(service, file_id):
     file = service.files().get(fileId=file_id, fields="parents").execute()
     service.files().update(
@@ -78,12 +60,25 @@ def mover_video_drive(service, file_id):
         removeParents=",".join(file["parents"])
     ).execute()
 
+
+def start_ngrok():
+    subprocess.Popen(["ngrok", "http", "8000"], stdout=subprocess.DEVNULL)
+    time.sleep(5)
+
+    res = requests.get("http://localhost:4040/api/tunnels").json()
+    for tunnel in res["tunnels"]:
+        if tunnel["proto"] == "https":
+            return tunnel["public_url"]
+
+    raise RuntimeError("❌ Não foi possível obter URL do ngrok")
+
+
 def main():
     service = drive_service()
     videos = listar_videos(service)
 
     if not videos:
-        print("⚠️ Nenhum vídeo no Drive para postar.")
+        print("⚠️ Nenhum vídeo para postar.")
         return
 
     video = videos[0]
@@ -91,21 +86,27 @@ def main():
 
     baixar_video(service, video["id"], video["name"])
 
-    # print("▶️ Upload YouTube")
-    #subprocess.check_call(["python", "upload_youtube.py"])
+    # Servidor HTTP local
+    subprocess.Popen(["python", "serve_videos.py"])
+    time.sleep(2)
+
+    # ngrok
+    public_url = start_ngrok()
+    video_url = f"{public_url}/{video['name']}"
+    print("🌍 URL pública:", video_url)
+
+    env = os.environ.copy()
+    env["VIDEO_URL"] = video_url
 
     print("▶️ Upload Instagram")
-    env = os.environ.copy()
-    env["DRIVE_FILE_ID"] = video["id"]
-
     subprocess.check_call(
         ["python", "upload_instagram.py"],
         env=env
-)
-
+    )
 
     mover_video_drive(service, video["id"])
     print("✅ Vídeo postado e movido no Drive.")
+
 
 if __name__ == "__main__":
     main()
