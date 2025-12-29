@@ -95,7 +95,14 @@ def main():
     #subprocess.check_call(["python", "upload_youtube.py"])
 
     print("▶️ Upload Instagram")
-    subprocess.check_call(["python", "upload_instagram.py"])
+    env = os.environ.copy()
+    env["DRIVE_FILE_ID"] = video["id"]
+
+    subprocess.check_call(
+        ["python", "upload_instagram.py"],
+        env=env
+)
+
 
     mover_video_drive(service, video["id"])
     print("✅ Vídeo postado e movido no Drive.")
