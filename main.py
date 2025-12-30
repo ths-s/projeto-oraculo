@@ -50,15 +50,8 @@ def listar_videos(service):
     print("📂 Arquivos encontrados no Drive:", res.get("files", []))
     return res.get("files", [])
 
-
-
-
-
-
-
 def baixar_video(service, file_id, name):
-    os.makedirs(VIDEOS_PENDING, exist_ok=True)
-    path = os.path.join(VIDEOS_PENDING, name)
+    path = f"/tmp/{name}"
 
     request = service.files().get_media(fileId=file_id)
     fh = io.FileIO(path, "wb")
@@ -69,6 +62,7 @@ def baixar_video(service, file_id, name):
         _, done = downloader.next_chunk()
 
     return path
+
 
 def mover_video_drive(service, file_id):
     file = service.files().get(fileId=file_id, fields="parents").execute()
