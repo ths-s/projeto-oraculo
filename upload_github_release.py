@@ -3,11 +3,19 @@ import requests
 import subprocess
 import json
 from pathlib import Path
+import re
+import uuid
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # user/repo
 
 VIDEO_PATH = os.getenv("VIDEO_PATH")
+
+original_name = os.path.basename(VIDEO_PATH)
+
+safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", original_name)
+safe_name = f"{uuid.uuid4()}_{safe_name}"
+
 RELEASE_TAG = "videos-auto"
 RELEASE_NAME = "Vídeos Automáticos"
 
@@ -42,16 +50,16 @@ def get_or_create_release():
     return r.json()
 
 
-def upload_asset(upload_url, file_path):
-    name = Path(file_path).name
+def upload_asset(upload_url, file_path, asset_name):
+    params = {"name": asset_name}
     url = upload_url.split("{")[0] + f"?name={name}"
 
     with open(file_path, "rb") as f:
         r = requests.post(
             url,
-            headers={
-                **HEADERS,
-                "Content-Type": "video/mp4"
+            headers = {
+                "Authorization": f"token {GITHUB_TOKEN}",
+                "Content-Type": "video/mp4",
             },
             data=f
         )
@@ -61,6 +69,6 @@ def upload_asset(upload_url, file_path):
 
 if __name__ == "__main__":
     release = get_or_create_release()
-    video_url = upload_asset(release["upload_url"], VIDEO_PATH)
+    video_url = upload_asset(release["upload_url"], VIDEO_PATH, safe_name)
 
     print("🌍 VIDEO_PUBLIC_URL=", video_url)
