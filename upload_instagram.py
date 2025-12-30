@@ -48,8 +48,10 @@ def wait_for_processing(container_id):
             print("✅ Vídeo processado com sucesso!")
             return True
         if status == "ERROR":
-            print("❌ Erro no processamento:", res)
-            return False
+            raise RuntimeError(
+                f"❌ Instagram falhou ao processar o vídeo.\nDetalhes completos: {json.dumps(res, indent=2)}"
+            )
+
 
         time.sleep(10)
 
