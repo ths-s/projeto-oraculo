@@ -1,5 +1,9 @@
 name: Postar vídeos automaticamente
 
+permissions:
+  contents: write
+
+  
 on:
 #  schedule:
 #    - cron: '0 12 * * *'   # 09h Brasil
