@@ -7,8 +7,7 @@ import random
 ACCESS_TOKEN = os.getenv("IG_ACCESS_TOKEN")
 IG_USER_ID = os.getenv("IG_USER_ID")
 
-VIDEO_URL = os.getenv("VIDEO_URL")
-VIDEO_FILENAME = os.getenv("VIDEO_FILENAME")
+VIDEO_URL = os.getenv("VIDEO_URL")  # URL FINAL DO VÍDEO (GitHub)
 
 DATA_DIR = "data"
 METADATA_FILE = "metadata.json"
@@ -69,8 +68,8 @@ def publish_reels(container_id):
 # ---------------- MAIN ---------------- #
 
 if __name__ == "__main__":
-    if not VIDEO_URL or not VIDEO_FILENAME:
-        raise RuntimeError("❌ VIDEO_URL ou VIDEO_FILENAME não definidos.")
+    if not VIDEO_URL:
+        raise RuntimeError("❌ VIDEO_URL não definido.")
 
     state = load_json(STATE_FILE)
     ganchos = load_json(GANCHO_FILE)
@@ -87,10 +86,9 @@ if __name__ == "__main__":
     print("🪝 Gancho:", gancho_id)
     print("💬 Legenda:\n", caption)
 
-    video_url = f"{VIDEO_URL}/{VIDEO_FILENAME}"
-    print("🌍 URL do vídeo:", video_url)
+    print("🌍 URL do vídeo:", VIDEO_URL)
 
-    upload_resp = upload_reels(video_url, caption)
+    upload_resp = upload_reels(VIDEO_URL, caption)
     print("📤 Upload response:", upload_resp)
 
     if "id" not in upload_resp:
