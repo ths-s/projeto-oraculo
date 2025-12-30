@@ -3,6 +3,8 @@ import requests
 import subprocess
 import json
 from pathlib import Path
+import re
+
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # user/repo
@@ -40,6 +42,12 @@ def get_or_create_release():
     )
     r.raise_for_status()
     return r.json()
+
+
+def safe_name(path):
+    name = Path(path).stem
+    name = re.sub(r'[^a-zA-Z0-9_-]', '_', name)
+    return f"{name}.mp4"
 
 
 def upload_asset(upload_url, file_path):

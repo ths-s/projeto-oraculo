@@ -18,6 +18,22 @@ if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
     )
 
 
+def normalize_video(input_path):
+    output_path = "normalized.mp4"
+    subprocess.check_call([
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-c:v", "libx264",
+        "-profile:v", "main",
+        "-level", "4.1",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-movflags", "+faststart",
+        output_path
+    ])
+    return output_path
+
+
 VIDEOS_PENDING = "videos/pending"
 
 def drive_service():
@@ -120,16 +136,6 @@ def main():
 
     # print("▶️ Upload YouTube")
     #subprocess.check_call(["python", "upload_youtube.py"])
-
-    print("▶️ Upload Instagram")
-    env = os.environ.copy()
-    env["DRIVE_FILE_ID"] = video["id"]
-
-    subprocess.check_call(
-        ["python", "upload_instagram.py"],
-        env=env
-)
-
 
     mover_video_drive(service, video["id"])
     print("✅ Vídeo postado e movido no Drive.")
