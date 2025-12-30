@@ -98,10 +98,20 @@ def main():
     env = os.environ.copy()
     env["DRIVE_FILE_ID"] = video["id"]
 
-    subprocess.check_call(
+    result = subprocess.run(
         ["python", "upload_instagram.py"],
-        env=env
-)
+        env=env,
+        capture_output=True,
+        text=True
+    )
+
+    print(result.stdout)
+
+    if result.returncode != 0:
+        print("❌ Falha no upload Instagram, vídeo NÃO será movido.")
+        print(result.stderr)
+        return
+
 
 
     mover_video_drive(service, video["id"])
