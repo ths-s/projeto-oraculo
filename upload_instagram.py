@@ -97,7 +97,13 @@ if __name__ == "__main__":
     print("🪝 Gancho:", gancho_id)
     print("💬 Legenda:\n", caption)
 
-    video_url = build_drive_download_url(DRIVE_FILE_ID)
+    VIDEO_URL = os.getenv("VIDEO_URL")
+
+    if not VIDEO_URL:
+        raise RuntimeError("❌ VIDEO_URL não definida.")
+
+    video_url = VIDEO_URL
+
     print("🌍 URL pública do Drive:", video_url)
 
     upload_resp = upload_reels(video_url, caption)

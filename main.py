@@ -91,6 +91,33 @@ def main():
 
     baixar_video(service, video["id"], video["name"])
 
+    video_local_path = baixar_video(service, video["id"], video["name"])
+
+    env = os.environ.copy()
+    env["VIDEO_PATH"] = video_local_path
+
+    result = subprocess.check_output(
+        ["python", "upload_github_release.py"],
+        env=env,
+        text=True
+    )
+
+    for line in result.splitlines():
+        if line.startswith("🌍 VIDEO_PUBLIC_URL="):
+            public_url = line.split("=", 1)[1]
+            break
+    else:
+        raise RuntimeError("❌ URL pública não encontrada.")
+
+    env["VIDEO_URL"] = public_url
+    env["DRIVE_FILE_ID"] = video["id"]
+
+    subprocess.check_call(
+        ["python", "upload_instagram.py"],
+        env=env
+    )
+
+
     # print("▶️ Upload YouTube")
     #subprocess.check_call(["python", "upload_youtube.py"])
 
