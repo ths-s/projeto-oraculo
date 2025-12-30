@@ -52,7 +52,7 @@ def get_or_create_release():
 
 def upload_asset(upload_url, file_path, asset_name):
     params = {"name": asset_name}
-    url = upload_url.split("{")[0] + f"?name={name}"
+    url = upload_url.split("{")[0] + f"?name={asset_name}"
 
     with open(file_path, "rb") as f:
         r = requests.post(
