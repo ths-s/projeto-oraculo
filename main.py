@@ -23,11 +23,16 @@ def normalize_video(input_path):
     subprocess.check_call([
         "ffmpeg", "-y",
         "-i", input_path,
+        "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2",
+        "-r", "30",
         "-c:v", "libx264",
         "-profile:v", "main",
         "-level", "4.1",
         "-pix_fmt", "yuv420p",
+        "-b:v", "6M",
         "-c:a", "aac",
+        "-ar", "44100",
+        "-ac", "2",
         "-movflags", "+faststart",
         output_path
     ])
@@ -105,7 +110,8 @@ def main():
     video = videos[0]
     print(f"🎬 Processando: {video['name']}")
 
-    video_local_path = baixar_video(service, video["id"], video["name"])
+    raw_path = baixar_video(service, video["id"], video["name"])
+    video_local_path = normalize_video(raw_path)
 
     env = os.environ.copy()
     env["VIDEO_PATH"] = video_local_path
