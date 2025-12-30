@@ -51,20 +51,20 @@ def get_or_create_release():
 
 
 def upload_asset(upload_url, file_path, asset_name):
-    params = {"name": asset_name}
     url = upload_url.split("{")[0] + f"?name={asset_name}"
 
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Content-Type": "video/mp4",
+    }
+
     with open(file_path, "rb") as f:
-        r = requests.post(
-            url,
-            headers = {
-                "Authorization": f"token {GITHUB_TOKEN}",
-                "Content-Type": "video/mp4",
-            },
-            data=f
-        )
+        r = requests.post(url, headers=headers, data=f)
+
     r.raise_for_status()
+
     return r.json()["browser_download_url"]
+
 
 
 if __name__ == "__main__":
