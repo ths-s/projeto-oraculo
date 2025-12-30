@@ -3,10 +3,6 @@ import requests
 import subprocess
 import json
 from pathlib import Path
-import re
-from datetime import datetime
-
-
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # user/repo
@@ -46,17 +42,8 @@ def get_or_create_release():
     return r.json()
 
 
-def safe_name(path):
-    stem = Path(path).stem
-    stem = re.sub(r'[^a-zA-Z0-9_-]', '_', stem)
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    return f"{stem}_{timestamp}.mp4"
-
-
-
 def upload_asset(upload_url, file_path):
-    name = safe_name(file_path)
-
+    name = Path(file_path).name
     url = upload_url.split("{")[0] + f"?name={name}"
 
     with open(file_path, "rb") as f:

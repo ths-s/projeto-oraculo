@@ -18,27 +18,6 @@ if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
     )
 
 
-def normalize_video(input_path):
-    output_path = "normalized.mp4"
-    subprocess.check_call([
-        "ffmpeg", "-y",
-        "-i", input_path,
-        "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2",
-        "-r", "30",
-        "-c:v", "libx264",
-        "-profile:v", "main",
-        "-level", "4.1",
-        "-pix_fmt", "yuv420p",
-        "-b:v", "6M",
-        "-c:a", "aac",
-        "-ar", "44100",
-        "-ac", "2",
-        "-movflags", "+faststart",
-        output_path
-    ])
-    return output_path
-
-
 VIDEOS_PENDING = "videos/pending"
 
 def drive_service():
@@ -110,36 +89,20 @@ def main():
     video = videos[0]
     print(f"🎬 Processando: {video['name']}")
 
-    raw_path = baixar_video(service, video["id"], video["name"])
-    video_local_path = normalize_video(raw_path)
+    baixar_video(service, video["id"], video["name"])
 
+    # print("▶️ Upload YouTube")
+    #subprocess.check_call(["python", "upload_youtube.py"])
+
+    print("▶️ Upload Instagram")
     env = os.environ.copy()
-    env["VIDEO_PATH"] = video_local_path
-
-    result = subprocess.check_output(
-        ["python", "upload_github_release.py"],
-        env=env,
-        text=True
-    )
-
-    for line in result.splitlines():
-        if line.startswith("🌍 VIDEO_PUBLIC_URL="):
-            public_url = line.split("=", 1)[1]
-            break
-    else:
-        raise RuntimeError("❌ URL pública não encontrada.")
-
-    env["VIDEO_URL"] = public_url
     env["DRIVE_FILE_ID"] = video["id"]
 
     subprocess.check_call(
         ["python", "upload_instagram.py"],
         env=env
-    )
+)
 
-
-    # print("▶️ Upload YouTube")
-    #subprocess.check_call(["python", "upload_youtube.py"])
 
     mover_video_drive(service, video["id"])
     print("✅ Vídeo postado e movido no Drive.")
