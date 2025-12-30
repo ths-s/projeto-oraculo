@@ -105,8 +105,6 @@ def main():
     video = videos[0]
     print(f"🎬 Processando: {video['name']}")
 
-    baixar_video(service, video["id"], video["name"])
-
     video_local_path = baixar_video(service, video["id"], video["name"])
 
     env = os.environ.copy()
