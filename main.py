@@ -11,8 +11,8 @@ from googleapiclient.http import MediaIoBaseDownload
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = "service_account.json"
 
-PASTA_PARA_POSTAR = os.environ.get("PARA_POSTAR")
-PASTA_POSTADOS = os.environ.get("POSTADOS")
+PASTA_PARA_POSTAR = os.environ.get("PASTA_PARA_POSTAR")
+PASTA_POSTADOS = os.environ.get("PASTA_POSTADOS")
 
 if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
     raise RuntimeError("❌ Variáveis de ambiente PASTA_PARA_POSTAR ou PASTA_POSTADOS não definidas")
