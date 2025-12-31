@@ -60,33 +60,39 @@ def baixar_video(service, file_id, name):
 
 def mover_video_drive(service, file_id):
     """
-    Move o arquivo da pasta 'PARA_POSTAR' para 'POSTADOS' de forma atômica.
+    Move o arquivo da pasta PARA_POSTAR para a pasta POSTADOS.
+    Ambas devem estar no mesmo nível ou estrutura acessível.
     """
     try:
-        # Buscamos os pais atuais para garantir que estamos removendo o ID correto
+        # 1. Primeiro, precisamos saber quem é o pai atual para removê-lo
+        # O fields="parents" é essencial aqui
         file = service.files().get(
             fileId=file_id, 
             fields="parents", 
             supportsAllDrives=True
         ).execute()
         
-        # Recupera a lista de pais atuais (deveria ser apenas a PASTA_PARA_POSTAR)
+        # Recupera os pais atuais (normalmente será apenas o ID da PARA_POSTAR)
         current_parents = ",".join(file.get("parents", []))
 
-        # Se por algum motivo a lista vier vazia, usamos a variável de ambiente como fallback
-        if not current_parents:
-            current_parents = PASTA_PARA_POSTAR
-
+        # 2. Executa a movimentação
+        # addParents: adiciona o vínculo com a pasta POSTADOS
+        # removeParents: remove o vínculo com a pasta PARA_POSTAR
         service.files().update(
             fileId=file_id,
             addParents=PASTA_POSTADOS,
             removeParents=current_parents,
             supportsAllDrives=True,
-            enforceSingleParent=True # Força o Drive a não permitir múltiplos pais
+            enforceSingleParent=True,
+            fields="id, parents"
         ).execute()
-        print(f"✅ Arquivo movido com sucesso para a pasta POSTADOS.")
+        
+        print(f"✅ Vídeo movido com sucesso para a pasta POSTADOS.")
+
     except Exception as e:
-        print(f"⚠️ Erro ao mover arquivo no Drive: {e}")
+        # Se der erro 404 aqui, verifique se os IDs nos Secrets do GitHub 
+        # são EXATAMENTE os IDs das pastas (o final da URL no navegador)
+        print(f"❌ Erro ao mover arquivo no Drive: {e}")
 
 # ---------------- MAIN ---------------- #
 
