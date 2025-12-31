@@ -109,12 +109,16 @@ def main():
     )
     time.sleep(3)
 
-    # 2. NGROK COM LOGS PARA DEPURAÇÃO
+# ---------------- NGROK ---------------- #
     print("🌐 Iniciando ngrok...")
-    # Criamos um arquivo de log para ver por que o ngrok falha
+    
+    # Pegamos o token do ambiente que acabamos de configurar no YAML
+    ngrok_token = os.environ.get("NGROK_AUTHTOKEN")
+
     with open("ngrok.log", "w") as log_file:
+        # Adicionamos a flag --authtoken diretamente no comando
         ngrok = subprocess.Popen(
-            ["ngrok", "http", "8000", "--log", "stdout"],
+            ["ngrok", "http", "8000", "--authtoken", ngrok_token, "--log", "stdout"],
             stdout=log_file,
             stderr=log_file,
         )
