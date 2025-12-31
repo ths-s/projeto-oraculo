@@ -14,6 +14,9 @@ SERVICE_ACCOUNT_FILE = "service_account.json"
 PASTA_PARA_POSTAR = os.environ.get("PASTA_PARA_POSTAR")
 PASTA_POSTADOS = os.environ.get("PASTA_POSTADOS")
 
+print(PASTA_PARA_POSTAR)
+print(PASTA_POSTADOS)
+
 if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
     raise RuntimeError("❌ Variáveis de ambiente PASTA_PARA_POSTAR ou PASTA_POSTADOS não definidas")
 
@@ -59,34 +62,21 @@ def baixar_video(service, file_id, name):
     return path
 
 def mover_video_drive(service, file_id):
-    print(
-    service.files().get(
-        fileId=file_id,
-        fields="id,name,parents",
-        supportsAllDrives=True
-    ).execute()
-)
     try:
-        file = service.files().get(
-            fileId=file_id,
-            fields="parents",
-            supportsAllDrives=True
-        ).execute()
+        # 1. Primeiro, buscamos os pais atuais para garantir que o removeParents esteja correto
+        file = service.files().get(fileId=file_id, fields='parents').execute()
+        previous_parents = ",".join(file.get('parents'))
 
-        parents = file.get("parents")
-
-        if not parents:
-            raise RuntimeError("Arquivo não possui parents visíveis para a Service Account")
-
+        # 2. Executamos a atualização
         service.files().update(
             fileId=file_id,
             addParents=PASTA_POSTADOS,
-            removeParents=",".join(parents),
+            removeParents=previous_parents, # Usa o pai real encontrado
             supportsAllDrives=True,
             fields="id, parents"
         ).execute()
 
-        print("✅ Vídeo movido com sucesso para a pasta POSTADOS.")
+        print(f"✅ Vídeo {file_id} movido com sucesso.")
 
     except Exception as e:
         print(f"❌ Erro ao mover arquivo no Drive: {e}")
