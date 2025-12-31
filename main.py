@@ -59,39 +59,18 @@ def baixar_video(service, file_id, name):
     return path
 
 def mover_video_drive(service, file_id):
-    """
-    Move o arquivo da pasta PARA_POSTAR para a pasta POSTADOS.
-    Ambas devem estar no mesmo nível ou estrutura acessível.
-    """
     try:
-        # 1. Primeiro, precisamos saber quem é o pai atual para removê-lo
-        # O fields="parents" é essencial aqui
-        file = service.files().get(
-            fileId=file_id, 
-            fields="parents", 
-            supportsAllDrives=True
-        ).execute()
-        
-        # Recupera os pais atuais (normalmente será apenas o ID da PARA_POSTAR)
-        current_parents = ",".join(file.get("parents", []))
-
-        # 2. Executa a movimentação
-        # addParents: adiciona o vínculo com a pasta POSTADOS
-        # removeParents: remove o vínculo com a pasta PARA_POSTAR
         service.files().update(
             fileId=file_id,
             addParents=PASTA_POSTADOS,
-            removeParents=current_parents,
+            removeParents=PASTA_PARA_POSTAR,
             supportsAllDrives=True,
-            enforceSingleParent=True,
             fields="id, parents"
         ).execute()
-        
-        print(f"✅ Vídeo movido com sucesso para a pasta POSTADOS.")
+
+        print("✅ Vídeo movido com sucesso para a pasta POSTADOS.")
 
     except Exception as e:
-        # Se der erro 404 aqui, verifique se os IDs nos Secrets do GitHub 
-        # são EXATAMENTE os IDs das pastas (o final da URL no navegador)
         print(f"❌ Erro ao mover arquivo no Drive: {e}")
 
 # ---------------- MAIN ---------------- #
