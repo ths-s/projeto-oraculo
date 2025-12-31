@@ -14,9 +14,6 @@ SERVICE_ACCOUNT_FILE = "service_account.json"
 PASTA_PARA_POSTAR = os.environ.get("PASTA_PARA_POSTAR")
 PASTA_POSTADOS = os.environ.get("PASTA_POSTADOS")
 
-print("")
-print(PASTA_POSTADOS)
-
 if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
     raise RuntimeError("❌ Variáveis de ambiente PASTA_PARA_POSTAR ou PASTA_POSTADOS não definidas")
 
@@ -126,7 +123,7 @@ def main():
         raise RuntimeError("Falha ao obter túnel ngrok")
 
     video_url = f"{public_url}/{os.path.basename(video_path)}"
-    """
+
     # 3. UPLOAD YOUTUBE
     print("▶️ Enviando para o YouTube...")
     try:
@@ -151,7 +148,7 @@ def main():
         mover_video_drive(service, video["id"])
     else:
         print("⚠️ O vídeo não foi movido pois um dos uploads falhou.")
-    """
+
     mover_video_drive(service, video["id"])
 
     server.terminate()
