@@ -11,10 +11,10 @@ from googleapiclient.http import MediaIoBaseDownload
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = "service_account.json"
 
-PASTA_PARA_POSTAR = "PARA_POSTAR"
-PASTA_POSTADOS = "POSTADOS"
+PASTA_PARA_POSTAR = os.environ.get("PASTA_PARA_POSTAR")
+PASTA_POSTADOS = os.environ.get("PASTA_POSTADOS")
 
-print(PASTA_PARA_POSTAR)
+print("")
 print(PASTA_POSTADOS)
 
 if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
@@ -63,23 +63,21 @@ def baixar_video(service, file_id, name):
 
 def mover_video_drive(service, file_id):
     try:
-        # 1. Primeiro, buscamos os pais atuais para garantir que o removeParents esteja correto
+        # Primeiro, descobrimos quem é o pai atual do arquivo para removê-lo com precisão
         file = service.files().get(fileId=file_id, fields='parents').execute()
-        previous_parents = ",".join(file.get('parents'))
+        current_parents = ",".join(file.get('parents', []))
 
-        # 2. Executamos a atualização
         service.files().update(
             fileId=file_id,
-            addParents=PASTA_POSTADOS,
-            removeParents=previous_parents, # Usa o pai real encontrado
+            addParents=PASTA_POSTADOS,     # O ID da pasta de destino
+            removeParents=current_parents,  # Remove todos os pais atuais
             supportsAllDrives=True,
             fields="id, parents"
         ).execute()
 
-        print(f"✅ Vídeo {file_id} movido com sucesso.")
-
+        print("✅ Vídeo movido com sucesso.")
     except Exception as e:
-        print(f"❌ Erro ao mover arquivo no Drive: {e}")
+        print(f"❌ Erro ao mover arquivo: {e}")
 
 # ---------------- MAIN ---------------- #
 
