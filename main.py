@@ -7,6 +7,8 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
+# ---------------- CONFIG ---------------- #
+
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = "service_account.json"
 
@@ -14,7 +16,7 @@ PASTA_PARA_POSTAR = os.environ["PASTA_PARA_POSTAR"]
 PASTA_POSTADOS = os.environ["PASTA_POSTADOS"]
 
 if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
-    raise RuntimeError("❌ PASTA_PARA_POSTAR ou PASTA_POSTADOS não definidos.")
+    raise RuntimeError("❌ Variáveis de ambiente do Drive não definidas")
 
 # ---------------- DRIVE ---------------- #
 
@@ -25,17 +27,7 @@ def drive_service():
     return build("drive", "v3", credentials=creds)
 
 def listar_videos(service):
-    query = (
-        f"'{PASTA_PARA_POSTAR}' in parents and "
-        "("
-        "mimeType contains 'video/' or "
-        "name contains '.mp4' or "
-        "name contains '.mov' or "
-        "name contains '.mkv'"
-        ") and "
-        "mimeType != 'application/vnd.google-apps.shortcut'"
-    )
-
+    query = f"'{PASTA_PARA_POSTAR}' in parents and mimeType contains 'video/'"
     res = service.files().list(
         q=query,
         fields="files(id,name,mimeType)",
@@ -58,6 +50,7 @@ def baixar_video(service, file_id, name):
     while not done:
         _, done = downloader.next_chunk()
 
+    print("✅ Vídeo baixado:", path)
     return path
 
 def mover_video_drive(service, file_id):
@@ -68,6 +61,28 @@ def mover_video_drive(service, file_id):
         removeParents=",".join(file["parents"]),
     ).execute()
 
+# ---------------- TESTES ---------------- #
+
+def testar_url(video_url):
+    print("🧪 Testando URL pública...")
+
+    if "github.com" in video_url.lower():
+        raise RuntimeError("❌ ERRO CRÍTICO: GitHub NÃO é permitido como host de vídeo")
+
+    r = requests.get(video_url, stream=True, timeout=10)
+
+    print("🔎 Status HTTP:", r.status_code)
+    print("🔎 Content-Type:", r.headers.get("Content-Type"))
+    print("🔎 Content-Length:", r.headers.get("Content-Length"))
+
+    if r.status_code != 200:
+        raise RuntimeError("❌ URL não acessível publicamente")
+
+    if "video" not in (r.headers.get("Content-Type") or ""):
+        raise RuntimeError("❌ URL não retorna vídeo")
+
+    print("✅ URL validada com sucesso")
+
 # ---------------- MAIN ---------------- #
 
 def main():
@@ -75,7 +90,7 @@ def main():
     videos = listar_videos(service)
 
     if not videos:
-        print("⚠️ Nenhum vídeo no Drive para postar.")
+        print("⚠️ Nenhum vídeo para postar")
         return
 
     video = videos[0]
@@ -107,25 +122,25 @@ def main():
 
     tunnels = requests.get("http://127.0.0.1:4040/api/tunnels").json()["tunnels"]
 
-    public_url = None
-    for t in tunnels:
-        if t["proto"] == "https":
-            public_url = t["public_url"]
-            break
+    public_url = next(
+        (t["public_url"] for t in tunnels if t["proto"] == "https"),
+        None
+    )
 
     if not public_url:
-        raise RuntimeError("❌ Não foi possível obter URL pública do ngrok")
+        raise RuntimeError("❌ Ngrok não retornou URL HTTPS")
 
     video_url = f"{public_url}/{os.path.basename(video_path)}"
-    print("🌍 URL pública final:", video_url)
+    print("🌍 URL pública:", video_url)
+
+    # ---------------- TESTES ---------------- #
+
+    testar_url(video_url)
 
     # ---------------- INSTAGRAM ---------------- #
 
-    print("▶️ Upload Instagram")
-
     env = os.environ.copy()
     env["VIDEO_URL"] = video_url
-    env["VIDEO_FILENAME"] = os.path.basename(video_path)
 
     result = subprocess.run(
         ["python", "upload_instagram.py"],
@@ -137,14 +152,14 @@ def main():
     print(result.stdout)
 
     if result.returncode != 0:
-        print("❌ Falha no upload Instagram, vídeo NÃO será movido.")
+        print("❌ Falha no Instagram")
         print(result.stderr)
         server.terminate()
         ngrok.terminate()
         return
 
     mover_video_drive(service, video["id"])
-    print("✅ Vídeo postado e movido no Drive.")
+    print("✅ Vídeo postado e movido")
 
     server.terminate()
     ngrok.terminate()
