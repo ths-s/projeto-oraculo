@@ -61,90 +61,48 @@ def mover_video_drive(service, file_id):
         removeParents=",".join(file["parents"]),
     ).execute()
 
-# ---------------- TESTES ---------------- #
-
-def testar_url(video_url):
-    print("🧪 Testando URL pública...")
-
-    if "github.com" in video_url.lower():
-        raise RuntimeError("❌ ERRO CRÍTICO: GitHub NÃO é permitido como host de vídeo")
-
-    r = requests.get(video_url, stream=True, timeout=10)
-
-    print("🔎 Status HTTP:", r.status_code)
-    print("🔎 Content-Type:", r.headers.get("Content-Type"))
-    print("🔎 Content-Length:", r.headers.get("Content-Length"))
-
-    if r.status_code != 200:
-        raise RuntimeError("❌ URL não acessível publicamente")
-
-    if "video" not in (r.headers.get("Content-Type") or ""):
-        raise RuntimeError("❌ URL não retorna vídeo")
-
-    print("✅ URL validada com sucesso")
-
-# ---------------- MAIN ---------------- #
-
-def main():
-    service = drive_service()
-    videos = listar_videos(service)
-
-    if not videos:
-        print("⚠️ Nenhum vídeo para postar")
-        return
-
-    video = videos[0]
-    print(f"🎬 Processando: {video['name']}")
-
-    video_path = baixar_video(service, video["id"], video["name"])
-
-    # ---------------- SERVIDOR LOCAL ---------------- #
-
-    print("🌐 Iniciando servidor HTTP local")
+# ---------------- SERVIDOR LOCAL ---------------- #
+    print("🌐 Iniciando servidor HTTP local...")
     server = subprocess.Popen(
         ["python", "serve_video.py"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-
-    time.sleep(3)
+    time.sleep(2) # Tempo curto para o Python abrir a porta 8000
 
     # ---------------- NGROK ---------------- #
-
-    print("🌐 Iniciando ngrok")
+    print("🌐 Iniciando ngrok...")
     ngrok = subprocess.Popen(
-        ["ngrok", "http", "8000", "--log=stdout", "--log-format=json"],
+        ["ngrok", "http", "8000"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
 
-
-    time.sleep(5)
-
-    tunnels = requests.get("http://127.0.0.1:4040/api/tunnels").json()["tunnels"]
-
     public_url = None
-
-    for _ in range(10):
+    # Loop de tentativa para a API do ngrok (Porta 4040)
+    for i in range(15): 
         try:
-            tunnels = requests.get(
-                "http://127.0.0.1:4040/api/tunnels", timeout=2
-            ).json().get("tunnels", [])
-
-            for t in tunnels:
-                if t.get("proto") == "https":
-                    public_url = t.get("public_url")
-                    break
-
+            # Tenta obter os túneis da API local do ngrok
+            response = requests.get("http://127.0.0.1:4040/api/tunnels", timeout=2)
+            if response.status_code == 200:
+                tunnels = response.json().get("tunnels", [])
+                for t in tunnels:
+                    # Prioriza HTTPS para o Instagram
+                    if t.get("proto") == "https":
+                        public_url = t.get("public_url")
+                        break
             if public_url:
+                print(f"✅ Ngrok pronto na tentativa {i+1}: {public_url}")
                 break
-
         except Exception:
-            time.sleep(1)
+            pass # Porta 4040 ainda não respondeu, ignora e tenta de novo
+        
+        time.sleep(2)
 
     if not public_url:
-        raise RuntimeError("❌ Ngrok não inicializou a API local (4040)")
-
+        server.terminate()
+        ngrok.terminate()
+        raise RuntimeError("❌ Falha crítica: O ngrok não subiu a tempo.")
 
     video_url = f"{public_url}/{os.path.basename(video_path)}"
     print("🌍 URL pública:", video_url)

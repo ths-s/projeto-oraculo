@@ -3,12 +3,10 @@ import socketserver
 import os
 
 PORT = 8000
-VIDEO_DIR = "/tmp"
-
-os.chdir(VIDEO_DIR)
+# Muda o diretório de trabalho para onde o vídeo foi baixado
+os.chdir("/tmp")
 
 Handler = http.server.SimpleHTTPRequestHandler
-
 with socketserver.TCPServer(("", PORT), Handler) as httpd:
-    print(f"🌍 Servindo vídeos em http://localhost:{PORT}")
+    print(f"Servindo na porta {PORT}")
     httpd.serve_forever()
