@@ -1,6 +1,8 @@
 import os
 import io
 import subprocess
+import time
+import requests
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -81,41 +83,47 @@ def main():
 
     video_path = baixar_video(service, video["id"], video["name"])
 
-    # 🔹 Upload para GitHub Release (gera URL pública)
-    print("⬆️ Upload do vídeo para GitHub Release")
+    # ---------------- SERVIDOR LOCAL ---------------- #
 
-    env = os.environ.copy()
-    env["VIDEO_PATH"] = video_path
-
-    result = subprocess.run(
-        ["python", "upload_github_release.py"],
-        env=env,
-        capture_output=True,
-        text=True,
+    print("🌐 Iniciando servidor HTTP local")
+    server = subprocess.Popen(
+        ["python", "serve_video.py"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
 
-    print(result.stdout)
+    time.sleep(3)
 
-    if result.returncode != 0:
-        print("❌ Falha no upload para GitHub Release")
-        print(result.stderr)
-        return
+    # ---------------- NGROK ---------------- #
 
-    # 🔹 Extrair URL pública
-    video_url = None
-    for line in result.stdout.splitlines():
-        if line.startswith("🌍 VIDEO_PUBLIC_URL="):
-            video_url = line.split("=", 1)[1].strip()
+    print("🌐 Iniciando ngrok")
+    ngrok = subprocess.Popen(
+        ["ngrok", "http", "8000"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
-    if not video_url:
-        print("❌ Não foi possível obter a URL pública do vídeo.")
-        return
+    time.sleep(5)
 
+    tunnels = requests.get("http://127.0.0.1:4040/api/tunnels").json()["tunnels"]
+
+    public_url = None
+    for t in tunnels:
+        if t["proto"] == "https":
+            public_url = t["public_url"]
+            break
+
+    if not public_url:
+        raise RuntimeError("❌ Não foi possível obter URL pública do ngrok")
+
+    video_url = f"{public_url}/{os.path.basename(video_path)}"
     print("🌍 URL pública final:", video_url)
 
-    # 🔹 Upload Instagram
+    # ---------------- INSTAGRAM ---------------- #
+
     print("▶️ Upload Instagram")
 
+    env = os.environ.copy()
     env["VIDEO_URL"] = video_url
     env["VIDEO_FILENAME"] = os.path.basename(video_path)
 
@@ -131,10 +139,15 @@ def main():
     if result.returncode != 0:
         print("❌ Falha no upload Instagram, vídeo NÃO será movido.")
         print(result.stderr)
+        server.terminate()
+        ngrok.terminate()
         return
 
     mover_video_drive(service, video["id"])
     print("✅ Vídeo postado e movido no Drive.")
+
+    server.terminate()
+    ngrok.terminate()
 
 if __name__ == "__main__":
     main()
