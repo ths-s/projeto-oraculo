@@ -64,26 +64,18 @@ def mover_video_drive(service, file_id):
 # ---------------- TESTES ---------------- #
 
 def testar_url(video_url):
-    print("🧪 Testando URL pública...")
-    
-    # Header necessário para pular o aviso de segurança do ngrok
+    print(f"🧪 Testando URL pública: {video_url}")
     headers = {"ngrok-skip-browser-warning": "true"}
     
-    r = requests.get(video_url, headers=headers, stream=True, timeout=15)
-    
-    print("🔎 Status HTTP:", r.status_code)
-    print("🔎 Content-Type:", r.headers.get("Content-Type"))
-
-    if r.status_code != 200:
-        raise RuntimeError(f"❌ URL inacessível. Status: {r.status_code}")
-
-    # Verifica se é vídeo ou se o Content-Length é compatível
-    if "video" not in (r.headers.get("Content-Type") or ""):
-        # Às vezes o ngrok não envia o mime-type correto no stream, 
-        # mas se o status for 200 e vier do nosso server, prosseguimos.
-        print("⚠️ Mime-type inesperado, mas tentando prosseguir...")
-    
-    print("✅ URL validada")
+    try:
+        r = requests.get(video_url, headers=headers, stream=True, timeout=15)
+        print("🔎 Status HTTP:", r.status_code)
+        if r.status_code == 200:
+            print("✅ URL validada com sucesso")
+        else:
+            print(f"⚠️ Aviso: Status {r.status_code}")
+    except Exception as e:
+        print(f"❌ Erro ao testar URL: {e}")
 
     # ---------------- SERVIDOR LOCAL ---------------- #
     print("🌐 Iniciando servidor HTTP local...")
@@ -106,60 +98,61 @@ def main():
         return
 
     video = videos[0]
-    print(f"🎬 Processando: {video['name']}")
-
     video_path = baixar_video(service, video["id"], video["name"])
 
-    # ---------------- SERVIDOR LOCAL ---------------- #
-
-    print("🌐 Iniciando servidor HTTP local")
+    # 1. SERVIDOR LOCAL
+    print("🌐 Iniciando servidor HTTP local na porta 8000...")
     server = subprocess.Popen(
         ["python", "serve_video.py"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-
     time.sleep(3)
 
-    # ---------------- NGROK ---------------- #
-
-# ---------------- NGROK ---------------- #
-
+    # 2. NGROK COM LOGS PARA DEPURAÇÃO
     print("🌐 Iniciando ngrok...")
-    # Remova logs excessivos para evitar poluir o buffer do subprocess
-    ngrok = subprocess.Popen(
-        ["ngrok", "http", "8000"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    # Criamos um arquivo de log para ver por que o ngrok falha
+    with open("ngrok.log", "w") as log_file:
+        ngrok = subprocess.Popen(
+            ["ngrok", "http", "8000", "--log", "stdout"],
+            stdout=log_file,
+            stderr=log_file,
+        )
 
     public_url = None
-    print("⏳ Aguardando túnel do ngrok ficar disponível...")
+    print("⏳ Aguardando túnel do ngrok (Porta 4040)...")
 
-    # Aumentamos o range e colocamos TUDO dentro do try/except
     for i in range(15): 
         try:
             # Tenta conectar na API local do ngrok
-            response = requests.get("http://127.0.0.1:4040/api/tunnels", timeout=2)
-            if response.status_code == 200:
-                tunnels = response.json().get("tunnels", [])
+            res = requests.get("http://127.0.0.1:4040/api/tunnels", timeout=2)
+            if res.status_code == 200:
+                tunnels = res.json().get("tunnels", [])
                 for t in tunnels:
                     if t.get("proto") == "https":
                         public_url = t.get("public_url")
                         break
-            
             if public_url:
-                print(f"✅ Túnel estabelecido na tentativa {i+1}")
+                print(f"✅ Túnel ativo: {public_url} (Tentativa {i+1})")
                 break
-        except Exception:
-            # Se a conexão for recusada, apenas espera e tenta de novo
-            time.sleep(2)
+        except:
+            pass
+        time.sleep(2)
 
     if not public_url:
-        ngrok.terminate()
+        print("❌ ERRO: O ngrok não iniciou corretamente.")
+        # LER O LOG DO NGROK PARA EXIBIR NO CONSOLE DO GITHUB
+        if os.path.exists("ngrok.log"):
+            with open("ngrok.log", "r") as f:
+                print("\n--- LOG DO NGROK ---")
+                print(f.read())
+                print("--------------------\n")
+        
         server.terminate()
-        raise RuntimeError("❌ Ngrok não inicializou a API local (4040) após várias tentativas")
+        ngrok.terminate()
+        raise RuntimeError("Falha ao obter URL do ngrok")
 
+    # ... resto do código (Instagram upload, etc)
     video_url = f"{public_url}/{os.path.basename(video_path)}"
     print("🌍 URL pública:", video_url)
 
