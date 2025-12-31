@@ -59,11 +59,29 @@ def baixar_video(service, file_id, name):
     return path
 
 def mover_video_drive(service, file_id):
+    print(
+    service.files().get(
+        fileId=file_id,
+        fields="id,name,parents",
+        supportsAllDrives=True
+    ).execute()
+)
     try:
+        file = service.files().get(
+            fileId=file_id,
+            fields="parents",
+            supportsAllDrives=True
+        ).execute()
+
+        parents = file.get("parents")
+
+        if not parents:
+            raise RuntimeError("Arquivo não possui parents visíveis para a Service Account")
+
         service.files().update(
             fileId=file_id,
             addParents=PASTA_POSTADOS,
-            removeParents=PASTA_PARA_POSTAR,
+            removeParents=",".join(parents),
             supportsAllDrives=True,
             fields="id, parents"
         ).execute()
