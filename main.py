@@ -12,11 +12,11 @@ from googleapiclient.http import MediaIoBaseDownload
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = "service_account.json"
 
-PASTA_PARA_POSTAR = os.environ["PASTA_PARA_POSTAR"]
-PASTA_POSTADOS = os.environ["PASTA_POSTADOS"]
+PASTA_PARA_POSTAR = os.environ.get("PASTA_PARA_POSTAR")
+PASTA_POSTADOS = os.environ.get("PASTA_POSTADOS")
 
 if not PASTA_PARA_POSTAR or not PASTA_POSTADOS:
-    raise RuntimeError("❌ Variáveis de ambiente do Drive não definidas")
+    raise RuntimeError("❌ Variáveis de ambiente PASTA_PARA_POSTAR ou PASTA_POSTADOS não definidas")
 
 # ---------------- DRIVE ---------------- #
 
@@ -27,7 +27,18 @@ def drive_service():
     return build("drive", "v3", credentials=creds)
 
 def listar_videos(service):
-    query = f"'{PASTA_PARA_POSTAR}' in parents and mimeType contains 'video/'"
+    # Query aprimorada do seu main.py (aceita mais formatos e evita atalhos)
+    query = (
+        f"'{PASTA_PARA_POSTAR}' in parents and "
+        "("
+        "mimeType contains 'video/' or "
+        "name contains '.mp4' or "
+        "name contains '.mov' or "
+        "name contains '.mkv'"
+        ") and "
+        "mimeType != 'application/vnd.google-apps.shortcut'"
+    )
+    
     res = service.files().list(
         q=query,
         fields="files(id,name,mimeType)",
@@ -40,8 +51,8 @@ def listar_videos(service):
     return res.get("files", [])
 
 def baixar_video(service, file_id, name):
+    # Usamos o /tmp para facilitar o serving do vídeo no GitHub Actions
     path = f"/tmp/{name}"
-
     request = service.files().get_media(fileId=file_id)
     fh = io.FileIO(path, "wb")
     downloader = MediaIoBaseDownload(fh, request)
@@ -54,19 +65,32 @@ def baixar_video(service, file_id, name):
     return path
 
 def mover_video_drive(service, file_id):
-    file = service.files().get(fileId=file_id, fields="parents").execute()
-    service.files().update(
-        fileId=file_id,
-        addParents=PASTA_POSTADOS,
-        removeParents=",".join(file["parents"]),
-    ).execute()
+    try:
+        # CORREÇÃO: Adicionado supportsAllDrives e fields="parents"
+        file = service.files().get(
+            fileId=file_id, 
+            fields="parents", 
+            supportsAllDrives=True
+        ).execute()
+        
+        parents_list = file.get("parents", [])
+        previous_parents = ",".join(parents_list)
 
-# ---------------- TESTES ---------------- #
+        service.files().update(
+            fileId=file_id,
+            addParents=PASTA_POSTADOS,
+            removeParents=previous_parents,
+            supportsAllDrives=True
+        ).execute()
+        print(f"✅ Arquivo {file_id} movido para a pasta de postados.")
+    except Exception as e:
+        print(f"⚠️ Erro ao mover arquivo no Drive: {e}")
+
+# ---------------- UTILITÁRIOS ---------------- #
 
 def testar_url(video_url):
     print(f"🧪 Testando URL pública: {video_url}")
     headers = {"ngrok-skip-browser-warning": "true"}
-    
     try:
         r = requests.get(video_url, headers=headers, stream=True, timeout=15)
         print("🔎 Status HTTP:", r.status_code)
@@ -76,16 +100,6 @@ def testar_url(video_url):
             print(f"⚠️ Aviso: Status {r.status_code}")
     except Exception as e:
         print(f"❌ Erro ao testar URL: {e}")
-
-    # ---------------- SERVIDOR LOCAL ---------------- #
-    print("🌐 Iniciando servidor HTTP local...")
-    server = subprocess.Popen(
-        ["python", "serve_video.py"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    time.sleep(2) # Tempo curto para o Python abrir a porta 8000
-    
 
 # ---------------- MAIN ---------------- #
 
@@ -98,9 +112,10 @@ def main():
         return
 
     video = videos[0]
+    print(f"🎬 Processando: {video['name']}")
     video_path = baixar_video(service, video["id"], video["name"])
 
-    # 1. SERVIDOR LOCAL
+    # 1. INICIAR SERVIDOR LOCAL
     print("🌐 Iniciando servidor HTTP local na porta 8000...")
     server = subprocess.Popen(
         ["python", "serve_video.py"],
@@ -109,14 +124,11 @@ def main():
     )
     time.sleep(3)
 
-# ---------------- NGROK ---------------- #
+    # 2. INICIAR NGROK
     print("🌐 Iniciando ngrok...")
-    
-    # Pegamos o token do ambiente que acabamos de configurar no YAML
     ngrok_token = os.environ.get("NGROK_AUTHTOKEN")
-
+    
     with open("ngrok.log", "w") as log_file:
-        # Adicionamos a flag --authtoken diretamente no comando
         ngrok = subprocess.Popen(
             ["ngrok", "http", "8000", "--authtoken", ngrok_token, "--log", "stdout"],
             stdout=log_file,
@@ -124,11 +136,9 @@ def main():
         )
 
     public_url = None
-    print("⏳ Aguardando túnel do ngrok (Porta 4040)...")
-
+    print("⏳ Aguardando túnel do ngrok...")
     for i in range(15): 
         try:
-            # Tenta conectar na API local do ngrok
             res = requests.get("http://127.0.0.1:4040/api/tunnels", timeout=2)
             if res.status_code == 200:
                 tunnels = res.json().get("tunnels", [])
@@ -137,7 +147,7 @@ def main():
                         public_url = t.get("public_url")
                         break
             if public_url:
-                print(f"✅ Túnel ativo: {public_url} (Tentativa {i+1})")
+                print(f"✅ Túnel ativo: {public_url}")
                 break
         except:
             pass
@@ -145,49 +155,51 @@ def main():
 
     if not public_url:
         print("❌ ERRO: O ngrok não iniciou corretamente.")
-        # LER O LOG DO NGROK PARA EXIBIR NO CONSOLE DO GITHUB
         if os.path.exists("ngrok.log"):
-            with open("ngrok.log", "r") as f:
-                print("\n--- LOG DO NGROK ---")
-                print(f.read())
-                print("--------------------\n")
-        
+            with open("ngrok.log", "r") as f: print(f.read())
         server.terminate()
         ngrok.terminate()
         raise RuntimeError("Falha ao obter URL do ngrok")
 
-    # ... resto do código (Instagram upload, etc)
     video_url = f"{public_url}/{os.path.basename(video_path)}"
-    print("🌍 URL pública:", video_url)
-
-    # ---------------- TESTES ---------------- #
-
+    
+    # 3. TESTAR URL
     testar_url(video_url)
 
-    # ---------------- INSTAGRAM ---------------- #
+    # 4. UPLOAD YOUTUBE
+    print("▶️ Iniciando Upload YouTube...")
+    try:
+        # O script do YouTube geralmente precisa do caminho do arquivo local
+        env_yt = os.environ.copy()
+        env_yt["VIDEO_PATH"] = video_path 
+        subprocess.check_call(["python", "upload_youtube.py"], env=env_yt)
+        print("✅ YouTube concluído")
+    except Exception as e:
+        print(f"❌ Erro no YouTube: {e}")
 
-    env = os.environ.copy()
-    env["VIDEO_URL"] = video_url
-
-    result = subprocess.run(
+    # 5. UPLOAD INSTAGRAM
+    print("▶️ Iniciando Upload Instagram...")
+    env_ig = os.environ.copy()
+    env_ig["VIDEO_URL"] = video_url
+    
+    result_ig = subprocess.run(
         ["python", "upload_instagram.py"],
-        env=env,
+        env=env_ig,
         capture_output=True,
         text=True,
     )
+    print(result_ig.stdout)
 
-    print(result.stdout)
-
-    if result.returncode != 0:
+    # Finalização
+    if result_ig.returncode == 0:
+        print("✅ Instagram concluído com sucesso")
+        mover_video_drive(service, video["id"])
+    else:
         print("❌ Falha no Instagram")
-        print(result.stderr)
-        server.terminate()
-        ngrok.terminate()
-        return
+        print(result_ig.stderr)
 
-    mover_video_drive(service, video["id"])
-    print("✅ Vídeo postado e movido")
-
+    # Cleanup
+    print("🧹 Finalizando processos...")
     server.terminate()
     ngrok.terminate()
 
