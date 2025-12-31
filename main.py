@@ -66,23 +66,15 @@ def baixar_video(service, file_id, name):
 
 def mover_video_drive(service, file_id):
     try:
-        # CORREÇÃO: Adicionado supportsAllDrives e fields="parents"
-        file = service.files().get(
-            fileId=file_id, 
-            fields="parents", 
-            supportsAllDrives=True
-        ).execute()
-        
-        parents_list = file.get("parents", [])
-        previous_parents = ",".join(parents_list)
-
+        # Usamos diretamente a variável PASTA_PARA_POSTAR para remover o vínculo antigo
+        # Isso evita o erro de 'Increasing the number of parents'
         service.files().update(
             fileId=file_id,
             addParents=PASTA_POSTADOS,
-            removeParents=previous_parents,
+            removeParents=PASTA_PARA_POSTAR,
             supportsAllDrives=True
         ).execute()
-        print(f"✅ Arquivo {file_id} movido para a pasta de postados.")
+        print(f"✅ Arquivo {file_id} movido para a pasta de postados no Drive.")
     except Exception as e:
         print(f"⚠️ Erro ao mover arquivo no Drive: {e}")
 
