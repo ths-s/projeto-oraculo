@@ -113,22 +113,38 @@ def main():
 
     print("🌐 Iniciando ngrok")
     ngrok = subprocess.Popen(
-        ["ngrok", "http", "8000"],
+        ["ngrok", "http", "8000", "--log=stdout", "--log-format=json"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+
 
     time.sleep(5)
 
     tunnels = requests.get("http://127.0.0.1:4040/api/tunnels").json()["tunnels"]
 
-    public_url = next(
-        (t["public_url"] for t in tunnels if t["proto"] == "https"),
-        None
-    )
+    public_url = None
+
+    for _ in range(10):
+        try:
+            tunnels = requests.get(
+                "http://127.0.0.1:4040/api/tunnels", timeout=2
+            ).json().get("tunnels", [])
+
+            for t in tunnels:
+                if t.get("proto") == "https":
+                    public_url = t.get("public_url")
+                    break
+
+            if public_url:
+                break
+
+        except Exception:
+            time.sleep(1)
 
     if not public_url:
-        raise RuntimeError("❌ Ngrok não retornou URL HTTPS")
+        raise RuntimeError("❌ Ngrok não inicializou a API local (4040)")
+
 
     video_url = f"{public_url}/{os.path.basename(video_path)}"
     print("🌍 URL pública:", video_url)
