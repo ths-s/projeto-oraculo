@@ -11,8 +11,8 @@ from googleapiclient.http import MediaIoBaseDownload
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = "service_account.json"
 
-PASTA_PARA_POSTAR = os.environ.get("PASTA_PARA_POSTAR")
-PASTA_POSTADOS = os.environ.get("PASTA_POSTADOS")
+PASTA_PARA_POSTAR = "PARA_POSTAR"
+PASTA_POSTADOS = "POSTADOS"
 
 print(PASTA_PARA_POSTAR)
 print(PASTA_POSTADOS)
