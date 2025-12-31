@@ -35,6 +35,10 @@ jobs:
       - name: Configurar ngrok
         run: ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
 
+      - name: Testar tamanho do token
+        run: echo "O token tem ${#TOKEN} caracteres"
+        env:
+          TOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
 
       - name: Criar credenciais
         run: |
