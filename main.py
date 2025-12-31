@@ -60,14 +60,29 @@ def baixar_video(service, file_id, name):
 
 def mover_video_drive(service, file_id):
     """
-    Remove o arquivo da pasta 'PARA_POSTAR' e adiciona na 'POSTADOS'
+    Move o arquivo da pasta 'PARA_POSTAR' para 'POSTADOS' de forma atômica.
     """
     try:
+        # Buscamos os pais atuais para garantir que estamos removendo o ID correto
+        file = service.files().get(
+            fileId=file_id, 
+            fields="parents", 
+            supportsAllDrives=True
+        ).execute()
+        
+        # Recupera a lista de pais atuais (deveria ser apenas a PASTA_PARA_POSTAR)
+        current_parents = ",".join(file.get("parents", []))
+
+        # Se por algum motivo a lista vier vazia, usamos a variável de ambiente como fallback
+        if not current_parents:
+            current_parents = PASTA_PARA_POSTAR
+
         service.files().update(
             fileId=file_id,
             addParents=PASTA_POSTADOS,
-            removeParents=PASTA_PARA_POSTAR, # Remove diretamente da origem
-            supportsAllDrives=True
+            removeParents=current_parents,
+            supportsAllDrives=True,
+            enforceSingleParent=True # Força o Drive a não permitir múltiplos pais
         ).execute()
         print(f"✅ Arquivo movido com sucesso para a pasta POSTADOS.")
     except Exception as e:
