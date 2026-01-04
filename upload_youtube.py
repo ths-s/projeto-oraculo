@@ -117,10 +117,19 @@ if __name__ == "__main__":
     else:
         video_path = videos[0]
         video_name = os.path.basename(video_path)
-        gancho_name = random.choice(list(gancho_data.keys()))
-        gancho = gancho_data[gancho_name]
+        
+        # 1. Escolhe uma categoria do JSON (ex: "promocao_produto_x")
+        gancho_categoria = random.choice(list(gancho_data.keys()))
+        opcoes = gancho_data[gancho_categoria]
 
-        # Upload para o YouTube
+        # 2. Verifica se existem opções e escolhe UMA aleatoriamente
+        if isinstance(opcoes, list):
+            gancho = random.choice(opcoes)
+            print(f"🎲 Opção aleatória selecionada dentro de: {gancho_categoria}")
+        else:
+            gancho = opcoes # Mantém compatibilidade se não for lista
+
+        # Upload para o YouTube usando a opção sorteada
         response = upload_video(
             file_path=video_path,
             title=gancho["title"],
@@ -132,9 +141,11 @@ if __name__ == "__main__":
 
         # Atualiza metadata.json
         metadata[video_name] = {
-            "gancho": gancho_name,
+            "gancho_original": gancho_categoria,
+            "titulo_usado": gancho["title"], # Bom para seu controle
             "youtube_id": video_id,
         }
+        # ... resto do código (save_metadata e shutil.move)
         save_metadata(metadata)
         print(f"📁 Metadata atualizado com ID do vídeo ({video_id}) e gancho {gancho_name}.")
 

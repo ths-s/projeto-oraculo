@@ -2,6 +2,7 @@ import os
 import requests
 import time
 import json
+import random  # <--- 1. Importe o módulo random
 
 ACCESS_TOKEN = os.getenv("IG_ACCESS_TOKEN")
 IG_USER_ID = os.getenv("IG_USER_ID")
@@ -32,11 +33,23 @@ def wait_for_processing(container_id):
 if __name__ == "__main__":
     print("🌍 VIDEO_URL recebida:", VIDEO_URL)
 
+    # --- 2. DEFINA AS OPÇÕES DE LEGENDA ---
+    opcoes_de_legenda = [
+        "Confira esse Reels incrível que acabei de postar! 🚀\n\n#python #automacao #dev",
+        "Dica do dia: Automatize suas postagens com a API do Instagram. 🤖\n\n#instagramapi #coding #tech",
+        "Mais um vídeo saindo do forno! O que acharam? 🔥\n\n#reels #criatividade #marketing"
+    ]
+
+    # --- 3. ESCOLHA UMA ALEATORIAMENTE ---
+    legenda_escolhida = random.choice(opcoes_de_legenda)
+    print(f"📝 Legenda selecionada: {legenda_escolhida}")
+
     upload = requests.post(
         f"https://graph.facebook.com/v20.0/{IG_USER_ID}/media",
         data={
             "media_type": "REELS",
             "video_url": VIDEO_URL,
+            "caption": legenda_escolhida, # <--- 4. Use a legenda escolhida aqui
             "access_token": ACCESS_TOKEN,
         },
     ).json()
