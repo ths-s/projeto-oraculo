@@ -35,10 +35,22 @@ if __name__ == "__main__":
 
     # --- 2. DEFINA AS OPÇÕES DE LEGENDA ---
     opcoes_de_legenda = [
-        "Confira esse Reels incrível que acabei de postar! 🚀\n\n#python #automacao #dev",
-        "Dica do dia: Automatize suas postagens com a API do Instagram. 🤖\n\n#instagramapi #coding #tech",
-        "Mais um vídeo saindo do forno! O que acharam? 🔥\n\n#reels #criatividade #marketing"
-    ]
+        """Me segue senão 🚨⚠️🚨⚠️🚨⚠️🚨\n
+        .\n
+        .\n
+        .\n
+        .\n
+        #vaiprofy #vaiproexplorar
+        """,
+                """Me segue 🚶🚶🚶🚶\n
+        .\n
+        .\n
+        .\n
+        .\n
+        .\n
+        #vaiproexplorar #vaiprofy
+        """
+            ]
 
     # --- 3. ESCOLHA UMA ALEATORIAMENTE ---
     legenda_escolhida = random.choice(opcoes_de_legenda)
